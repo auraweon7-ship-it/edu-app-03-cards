@@ -1,0 +1,2820 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>03 디지털 플래시카드 학습기</title>
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;700;900&family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet">
+<script>
+  tailwind.config = {
+    theme: { extend: {
+      colors: { ink: '#1d1d1f', mute: '#77777d' },
+      fontFamily: { sans: ['Inter', '"Noto Sans KR"', 'system-ui', 'sans-serif'], disp: ['Inter', '"Noto Sans KR"', 'sans-serif'] }
+    } }
+  };
+</script>
+<style>
+  /* ---------- Soft UI 토큰: 밝은 회색 단색 바탕 + 파란 포커스 (강조색은 파랑 하나) ---------- */
+  :root {
+    --bg: #ececeb; --face: #f1f1f0; --sunk: #e4e4e3;
+    --ink: #1d1d1f; --mute: #77777d; --accent: 47,123,246;
+    --ok: 63,156,90; --ng: 208,84,74;
+    /* 돌출: 위 하이라이트 + 아래 모서리 + 바닥 그림자 */
+    --raise: 0 10px 18px -8px rgba(0,0,0,.2), 0 3px 0 -1px rgba(0,0,0,.06), inset 0 1px 0 #fff, inset 0 -2px 0 rgba(0,0,0,.05);
+    --raise-lg: 0 22px 34px -14px rgba(0,0,0,.24), 0 4px 0 -1px rgba(0,0,0,.06), inset 0 1.5px 0 #fff, inset 0 -2px 0 rgba(0,0,0,.05);
+    --raise-sm: 0 6px 10px -6px rgba(0,0,0,.22), 0 2px 0 -1px rgba(0,0,0,.06), inset 0 1px 0 #fff, inset 0 -1.5px 0 rgba(0,0,0,.05);
+    /* 눌림: 안쪽 그림자 */
+    --press: inset 0 2px 5px rgba(0,0,0,.14), inset 0 -1px 0 rgba(255,255,255,.9);
+    --focus: 0 0 0 2px var(--bg), 0 0 0 4px rgba(var(--accent),1);
+  }
+  html, body { overflow-x: hidden; }
+  :root { color-scheme: light; }
+  body { background: var(--bg); color: var(--ink); font-family: Inter, 'Noto Sans KR', system-ui, sans-serif; font-size: 16px; min-height: 100vh; }
+  .glass { background: var(--face); border: 1px solid rgba(0,0,0,.04); box-shadow: var(--raise); }
+  .glass-chip { background: var(--face); border: 1px solid rgba(0,0,0,.05); box-shadow: var(--raise-sm); }
+  .glass-ok { background: rgba(var(--ok),.1); border: 1.5px solid rgba(var(--ok),.45); color: #2a6b3d; }
+  .glass-ng { background: rgba(var(--ng),.09); border: 1.5px solid rgba(var(--ng),.45); color: #9a3027; }
+  .sunk { background: var(--sunk); box-shadow: var(--press); }
+  /* 섹션 머리: 음각 구분선 */
+  .sec-head { display: flex; align-items: center; gap: .5rem; padding-bottom: .6rem; border-bottom: 1px solid rgba(0,0,0,.09);
+    box-shadow: 0 1px 0 #fff; font-family: Inter, 'Noto Sans KR', sans-serif; font-weight: 600; font-size: .8rem; letter-spacing: .04em; }
+  .sec-head small { font-family: 'Noto Sans KR'; font-weight: 500; letter-spacing: 0; color: var(--mute); }
+  .sec-toggle { cursor: pointer; color: var(--ink); white-space: nowrap; }
+  .sec-toggle small { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+  .sec-toggle[aria-expanded="false"] small { display: none; }
+  .sec-toggle:focus-visible { outline: none; box-shadow: 0 1px 0 #fff, var(--focus); border-radius: .5rem; }
+  .sec-sum { display: none; font-family: 'Noto Sans KR'; font-size: 11px; font-weight: 500; letter-spacing: 0; color: var(--mute);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .sec-toggle[aria-expanded="false"] .sec-sum { display: block; }
+  .chev { flex: none; width: 1.6rem; height: 1.6rem; border-radius: 9999px; display: grid; place-items: center; background: var(--face); box-shadow: var(--raise-sm); }
+  .chev::before { content: ''; width: .45rem; height: .45rem; border-right: 1.6px solid var(--ink); border-bottom: 1.6px solid var(--ink);
+    transform: translateY(-2px) rotate(45deg); transition: transform .2s; }
+  .sec-toggle[aria-expanded="false"] .chev::before { transform: translateX(-1px) rotate(-45deg); }
+  .sec-toggle:active .chev { box-shadow: var(--press); }
+  /* 버튼: 기본(회색 돌출) · 올림(진하게) · 누름(눌림) · 비활성(평평) */
+  .pill { display: inline-flex; align-items: center; justify-content: center; gap: .4rem; border-radius: 9999px; font-weight: 500; color: var(--ink);
+    background: var(--face); border: 1px solid rgba(0,0,0,.05); box-shadow: var(--raise-sm); transition: background .15s, box-shadow .15s, transform .1s; white-space: nowrap; }
+  .pill:hover:not(:disabled) { background: #e8e8e7; }
+  .pill:active:not(:disabled) { box-shadow: var(--press); background: var(--sunk); transform: translateY(1px); }
+  .pill:disabled { opacity: .55; box-shadow: none; cursor: not-allowed; }
+  .pill-dark { color: #fff; border-color: rgba(0,0,0,.08);
+    background: linear-gradient(180deg, rgb(160,160,167), rgb(136,136,143)); text-shadow: 0 1px 0 rgba(0,0,0,.15);
+    box-shadow: 0 10px 18px -8px rgba(0,0,0,.3), 0 3px 0 -1px rgba(0,0,0,.12), inset 0 1px 0 rgba(255,255,255,.45), inset 0 -2px 0 rgba(0,0,0,.08); }
+  .pill-dark:hover:not(:disabled) { background: linear-gradient(180deg, rgb(126,126,134), rgb(104,104,112)); }
+  .pill-dark:active:not(:disabled) { background: var(--sunk); color: var(--ink); text-shadow: none; box-shadow: var(--press); }
+  .pill-dark:disabled { background: var(--sunk); color: var(--mute); text-shadow: none; }
+  /* 분류 버튼: 암기 완료(차분한 초록) · 재학습(차분한 빨강) */
+  .pill-ok { color: #2f7a46; border: 1.5px solid rgba(var(--ok),.45); }
+  .pill-ok:hover:not(:disabled) { background: rgba(var(--ok),.12); }
+  .pill-ng { color: #a8392f; border: 1.5px solid rgba(var(--ng),.45); }
+  .pill-ng:hover:not(:disabled) { background: rgba(var(--ng),.1); }
+  .pill-ok.on { background: rgba(var(--ok),.14); box-shadow: var(--press); }
+  .pill-ng.on { background: rgba(var(--ng),.12); box-shadow: var(--press); }
+  .icon-btn { width: 1.9rem; height: 1.9rem; padding: 0; font-size: .8rem; }
+  /* 키보드 포커스 링은 항상 보이게 */
+  .pill:focus-visible, .tab-btn:focus-visible, .switch:focus-visible, .scene:focus-visible, a:focus-visible, select:focus-visible, summary:focus-visible { outline: none; box-shadow: var(--focus); }
+  .chip input:checked + span { background: linear-gradient(180deg, rgb(160,160,167), rgb(136,136,143)); color: #fff; font-weight: 600; border-color: rgba(0,0,0,.08);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,.18), inset 0 -1px 0 rgba(255,255,255,.25); }
+  .chip:hover input:not(:checked) + span { background: #e8e8e7; }
+  .chip input:focus-visible + span { box-shadow: var(--focus); }
+  /* 세그먼트: 눌린 홈 안에 돌출된 선택 칸 */
+  .seg { display: flex; gap: .25rem; padding: .25rem; border-radius: 9999px; background: var(--sunk); box-shadow: var(--press); }
+  .seg label { flex: 1; min-width: 0; cursor: pointer; }
+  .seg span { display: block; text-align: center; padding: .4rem .5rem; border-radius: 9999px; font-size: .75rem; font-weight: 600; color: var(--mute);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; transition: background .15s, color .15s, box-shadow .15s; }
+  .seg label:hover span { color: var(--ink); }
+  .seg input:checked + span { background: var(--face); color: var(--ink); box-shadow: var(--raise-sm); }
+  .seg input:focus-visible + span { box-shadow: var(--focus); }
+  .tablist { background: var(--sunk); box-shadow: var(--press); }
+  .tab-btn { color: var(--mute); border-radius: 9999px; transition: background .15s, color .15s, box-shadow .15s; }
+  .tab-btn:hover { color: var(--ink); }
+  .tab-btn[aria-selected="true"] { background: var(--face); color: var(--ink); box-shadow: var(--raise-sm); }
+  /* 입력칸: 안쪽으로 눌린 모양 */
+  .field { width: 100%; background: var(--sunk); border: 1.5px solid rgba(0,0,0,.05); border-radius: 1rem; padding: .65rem 1rem; font-size: .875rem;
+    box-shadow: var(--press); transition: box-shadow .15s, background .15s; color: var(--ink); }
+  .field:focus { outline: none; background: #e9e9e8; box-shadow: var(--press), var(--focus); }
+  .field::placeholder { color: #a2a2a8; }
+  select.field { appearance: none; -webkit-appearance: none; padding-right: 2.2rem; cursor: pointer;
+    background-image: linear-gradient(45deg, transparent 50%, var(--ink) 50%), linear-gradient(135deg, var(--ink) 50%, transparent 50%);
+    background-position: calc(100% - 1.1rem) 52%, calc(100% - .8rem) 52%; background-size: .3rem .3rem; background-repeat: no-repeat; }
+  /* 토글 스위치 */
+  .switch { appearance: none; -webkit-appearance: none; flex: none; position: relative; width: 2.9rem; height: 1.65rem; border-radius: 9999px; cursor: pointer;
+    background: var(--sunk); box-shadow: var(--press); transition: background .2s; }
+  .switch::before { content: ''; position: absolute; top: 50%; left: .18rem; width: 1.3rem; height: 1.3rem; border-radius: 9999px; transform: translateY(-50%);
+    background: linear-gradient(180deg, #fff, #ececeb); box-shadow: 0 3px 6px -1px rgba(0,0,0,.28), inset 0 -1px 0 rgba(0,0,0,.06); transition: left .2s; }
+  .switch:checked { background: linear-gradient(180deg, rgb(150,150,157), rgb(128,128,135)); box-shadow: inset 0 2px 4px rgba(0,0,0,.25); }
+  .switch:checked::before { left: calc(100% - 1.48rem); }
+  /* 슬라이더 */
+  .range { -webkit-appearance: none; appearance: none; width: 100%; height: .5rem; border-radius: 9999px; cursor: pointer; margin: .4rem 0;
+    background: linear-gradient(to right, rgb(var(--accent)) 0 var(--fill, 0%), var(--sunk) var(--fill, 0%) 100%); box-shadow: var(--press); }
+  .range::-webkit-slider-thumb { -webkit-appearance: none; width: 1.4rem; height: 1.4rem; border-radius: 9999px; background: linear-gradient(180deg, #fff, #ececeb);
+    box-shadow: 0 3px 7px -1px rgba(0,0,0,.3), inset 0 -1px 0 rgba(0,0,0,.06); border: 1px solid rgba(0,0,0,.05); }
+  .range::-moz-range-thumb { width: 1.4rem; height: 1.4rem; border-radius: 9999px; background: linear-gradient(180deg, #fff, #ececeb);
+    box-shadow: 0 3px 7px -1px rgba(0,0,0,.3); border: 1px solid rgba(0,0,0,.05); }
+  .range:focus-visible { outline: none; box-shadow: var(--press), var(--focus); }
+  /* 진도율 바: 눌린 홈 + 초록(암기)·빨강(재학습) */
+  .bar { display: flex; height: .8rem; border-radius: 9999px; overflow: hidden; background: var(--sunk); box-shadow: var(--press); }
+  .bar i { display: block; height: 100%; transition: width .4s ease; }
+  .bar .k { background: linear-gradient(180deg, rgba(var(--ok),.85), rgb(var(--ok))); }
+  .bar .a { background: linear-gradient(180deg, rgba(var(--ng),.75), rgba(var(--ng),.9)); }
+  .dot { display: inline-block; width: .55rem; height: .55rem; border-radius: 9999px; flex: none; }
+  .dot.k { background: rgb(var(--ok)); } .dot.a { background: rgb(var(--ng)); } .dot.n { background: #b9b9bf; }
+  .st { display: inline-flex; align-items: center; gap: .35rem; padding: .2rem .7rem; border-radius: 9999px; font-size: 11px; font-weight: 700;
+    background: var(--face); box-shadow: var(--raise-sm); border: 1.5px solid rgba(0,0,0,.06); color: var(--mute); }
+  .st.known { color: #2f7a46; border-color: rgba(var(--ok),.5); }
+  .st.again { color: #a8392f; border-color: rgba(var(--ng),.5); }
+
+  /* ---------- 플래시카드: 부드러운 3D 회전 (움직임 줄이기 → 페이드) ---------- */
+  .scene { perspective: 1800px; touch-action: pan-y; border-radius: 2rem; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .flip { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .75s cubic-bezier(.22,.8,.24,1); }
+  .flip.flipped { transform: rotateY(180deg); }
+  .face { position: absolute; inset: 0; display: flex; flex-direction: column; gap: .75rem; padding: 1.25rem 1.4rem; border-radius: 2rem;
+    background: var(--face); border: 1px solid rgba(0,0,0,.04); box-shadow: var(--raise-lg); backface-visibility: hidden; -webkit-backface-visibility: hidden; overflow: hidden; }
+  .face.back { transform: rotateY(180deg); }
+  .face.known { box-shadow: var(--raise-lg), inset 0 0 0 1.5px rgba(var(--ok),.4); }
+  .face.again { box-shadow: var(--raise-lg), inset 0 0 0 1.5px rgba(var(--ng),.38); }
+  /* 카드 모션 층: tilt(마우스 기울기) > mover(진입·퇴장·드래그) > flip(뒤집기) */
+  .scene { position: relative; }
+  .tilt, .mover { position: relative; width: 100%; height: 100%; transform-style: preserve-3d; }
+  .tilt { transition: transform .4s cubic-bezier(.2,.8,.3,1); }
+  .scene.tilting .tilt { transition: transform .12s ease-out; }
+  .face::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: var(--sheen, 0); transition: opacity .4s;
+    background: radial-gradient(circle at var(--mx, 50%) var(--my, 20%), rgba(255,255,255,.7), rgba(255,255,255,0) 55%); }
+  .face.back::after { background: radial-gradient(circle at calc(100% - var(--mx, 50%)) var(--my, 20%), rgba(255,255,255,.7), rgba(255,255,255,0) 55%); }
+  .fx { position: absolute; inset: 0; pointer-events: none; z-index: 5; }
+  .stamp { position: absolute; left: 50%; top: 46%; padding: .45rem 1.1rem; border: 3px solid currentColor; border-radius: .9rem; font-weight: 900;
+    font-size: clamp(1.2rem, 4vw, 1.7rem); letter-spacing: .06em; white-space: nowrap; background: rgba(241,241,240,.9);
+    box-shadow: 0 12px 26px -12px rgba(0,0,0,.4), inset 0 1px 0 #fff; transform: translate(-50%,-50%) rotate(-10deg); }
+  .stamp.k { color: #2f7a46; } .stamp.a { color: #a8392f; }
+  .spark { position: absolute; left: 50%; top: 46%; width: .6rem; height: .6rem; border-radius: 9999px; background: rgb(var(--ok)); }
+  .spark:nth-child(3n) { background: rgba(var(--ok),.5); } .spark:nth-child(4n) { width: .4rem; height: .4rem; background: #fff; box-shadow: 0 0 0 1.5px rgba(var(--ok),.5); }
+  .ripple { position: absolute; left: 50%; top: 46%; width: 7rem; height: 7rem; border-radius: 9999px; border: 3px solid rgba(var(--ng),.55); }
+  /* 전체보기(강의용): 카드가 화면을 채우고 글씨를 키움 */
+  #presentBar { display: none; }
+  #cardWrap.presenting { position: fixed; inset: 0; z-index: 60; background: var(--bg); display: flex; flex-direction: column; gap: 1rem;
+    padding: max(1.25rem, env(safe-area-inset-top, 0px)) max(1.5rem, env(safe-area-inset-right, 0px)) max(1rem, env(safe-area-inset-bottom, 0px)) max(1.5rem, env(safe-area-inset-left, 0px)); }
+  #cardWrap.presenting #presentBar { display: flex; }
+  #cardWrap.presenting { justify-content: center; align-items: center; }
+  /* 16:9: 조작 막대 자리를 뺀 높이와 화면 너비 중 작은 쪽에 맞춤 */
+  #cardWrap.presenting #scene, #cardWrap.presenting #emptyCard { flex: none; height: auto !important; aspect-ratio: 16 / 9; width: min(100%, calc((100dvh - 7rem) * 16 / 9)); max-width: none; margin: 0; }
+  #cardWrap.presenting .face { padding: clamp(1.25rem, 3vw, 2.5rem) clamp(1.4rem, 4vw, 3.5rem); border-radius: 2.4rem; }
+  #cardWrap.presenting .term-big { font-size: clamp(2.6rem, 7.5vw, 6.5rem); }
+  #cardWrap.presenting .desc-front { font-size: clamp(1.4rem, 3.4vw, 2.6rem); }
+  #cardWrap.presenting .emo { font-size: clamp(3.6rem, 9vw, 7.5rem); }
+  #cardWrap.presenting .term-sm { font-size: clamp(1.2rem, 2.4vw, 1.8rem); }
+  #cardWrap.presenting .term-mid { font-size: clamp(2rem, 5vw, 4rem); }
+  #cardWrap.presenting .desc-lg { font-size: clamp(1.25rem, 2.6vw, 2.1rem); line-height: 1.65; }
+  #cardWrap.presenting .cv-title { font-size: clamp(2rem, 5.5vw, 4.4rem); }
+  #cardWrap.presenting .cv-emo { font-size: clamp(2.4rem, 6vw, 4rem); }
+  #cardWrap.presenting .face-hint, #cardWrap.presenting .cv-hint { font-size: 13px; }
+  #cardWrap.presenting .back-body > .fit { gap: 1.2rem 2.4rem; }
+  #cardWrap.presenting .bk-side { gap: 1rem; zoom: 1.3; }
+  html.presenting-lock, html.presenting-lock body { overflow: hidden; }
+  .face-top { display: flex; align-items: center; gap: .5rem; min-height: 1.9rem; }
+  .face-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .face-body.center { display: grid; place-items: center; text-align: center; }
+  .term-big { font-size: clamp(1.6rem, 5.2vw, 2.7rem); font-weight: 700; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
+  .desc-front { font-size: clamp(1.02rem, 2.6vw, 1.3rem); font-weight: 600; line-height: 1.65; word-break: keep-all; overflow-wrap: anywhere; }
+  .term-sm { font-size: 1.05rem; font-weight: 700; word-break: keep-all; overflow-wrap: anywhere; }
+  .term-mid { font-size: clamp(1.4rem, 4.4vw, 2.1rem); font-weight: 700; line-height: 1.3; word-break: keep-all; overflow-wrap: anywhere; }
+  .desc-lg { font-size: 1.05rem; line-height: 1.75; font-weight: 500; word-break: keep-all; overflow-wrap: anywhere; }
+  .lbl { font-family: Inter, sans-serif; font-size: 10px; font-weight: 700; letter-spacing: .16em; color: var(--mute); }
+  .ex { margin-top: .9rem; padding: .7rem .9rem; border-radius: 1rem; background: var(--sunk); box-shadow: var(--press); font-size: .875rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .extra { margin-top: .9rem; padding-top: .8rem; border-top: 1px solid rgba(0,0,0,.09); box-shadow: inset 0 1px 0 #fff; font-size: .85rem; line-height: 1.6; overflow-wrap: anywhere; }
+  .extra li { margin: .25rem 0; }
+  .face-hint { text-align: center; font-size: 11px; color: var(--mute); }
+  @media (prefers-reduced-motion: reduce) {
+    .flip { transition: none; transform: none !important; }
+    .face { backface-visibility: visible; -webkit-backface-visibility: visible; transition: opacity .3s ease, visibility .3s; }
+    .face.back { transform: none; opacity: 0; visibility: hidden; }
+    .flip.flipped .face.front { opacity: 0; visibility: hidden; }
+    .flip.flipped .face.back { opacity: 1; visibility: visible; }
+    .bar i, .chev::before, .switch::before, .tilt { transition: none; }
+    .face::after { display: none; }
+  }
+  /* 표 */
+  .tbl { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 12px; }
+  .tbl th { font-family: Inter, 'Noto Sans KR'; font-size: 10.5px; font-weight: 700; letter-spacing: .04em; color: var(--mute); text-align: left; padding: .5rem .4rem; border-bottom: 1px solid rgba(0,0,0,.09); }
+  .tbl td { padding: .55rem .4rem; border-bottom: 1px solid rgba(0,0,0,.06); vertical-align: middle; overflow-wrap: anywhere; }
+  .tbl tr:last-child td { border-bottom: 0; }
+  /* 모달 */
+  dialog.modal { padding: 0; border: 0; border-radius: 2rem; background: var(--bg); color: var(--ink); box-shadow: 0 30px 60px -20px rgba(0,0,0,.45), inset 0 1.5px 0 #fff;
+    width: min(46rem, calc(100vw - 1.5rem)); max-height: calc(100dvh - 1.5rem); }
+  dialog.modal.sm { width: min(26rem, calc(100vw - 1.5rem)); }
+  dialog.modal::backdrop { background: rgba(28,28,32,.38); }
+  .modal-in { display: flex; flex-direction: column; max-height: calc(100dvh - 1.5rem); }
+  .modal-body { overflow-y: auto; padding: 1.25rem 1.4rem; min-height: 0; }
+  .modal-head, .modal-foot { padding: 1rem 1.4rem; display: flex; align-items: center; gap: .5rem; flex-wrap: wrap; }
+  .modal-head { border-bottom: 1px solid rgba(0,0,0,.09); box-shadow: 0 1px 0 #fff; }
+  .modal-foot { border-top: 1px solid rgba(0,0,0,.09); box-shadow: inset 0 1px 0 #fff; justify-content: flex-end; }
+  .ed-row { border-radius: 1.4rem; padding: .9rem; background: var(--face); box-shadow: var(--raise-sm); border: 1px solid rgba(0,0,0,.04); }
+  .spinner { display: inline-block; border: 2px solid currentColor; border-right-color: transparent; border-radius: 9999px; width: .95rem; height: .95rem; animation: spin .7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #toast { transition: opacity .25s, transform .25s; }
+  #toast.hide { opacity: 0; transform: translate(-50%, .5rem); pointer-events: none; }
+  .drop.dragging { box-shadow: var(--focus) !important; }
+  kbd { font-family: Inter, sans-serif; font-size: 10px; font-weight: 600; padding: .05rem .4rem; border-radius: .4rem; background: var(--face); box-shadow: var(--raise-sm); }
+</style>
+</head>
+<body class="font-sans min-h-screen">
+
+<!-- 헤더 -->
+<header class="glass !border-x-0 !border-t-0 !rounded-none">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-5 grid grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[1fr_auto_1fr] items-center gap-4">
+    <div class="min-w-0">
+      <p class="text-[11px] font-bold tracking-tight">대학 교육용 암기 학습 도구 · 전공 핵심 개념</p>
+      <p class="flex items-baseline gap-2"><span class="font-disp text-2xl font-medium tracking-[0.3em] leading-tight">FLIPCARD</span><span id="appVersion" class="glass-chip rounded-full px-2 py-0.5 font-disp text-[10px] font-semibold text-mute"></span></p>
+      <p class="text-[10px] text-mute md:hidden">교수신문 AI 교육 웹앱 시리즈 · 03 디지털 플래시카드 학습기</p>
+      <p class="text-[10px] text-mute hidden md:block">Presented by Digital Flashcard Trainer</p>
+    </div>
+    <h1 class="hidden md:flex items-center gap-3">
+      <svg viewBox="0 0 64 40" class="w-14 h-9" fill="none" stroke="#3a3a3f" stroke-width="1.6" aria-hidden="true">
+        <rect x="6" y="9" width="30" height="22" rx="3" transform="rotate(-8 21 20)"/><rect x="26" y="7" width="30" height="24" rx="3" fill="#ececeb"/>
+        <path d="M34 19h14M34 24h9"/>
+      </svg>
+      <span class="flex flex-col items-start leading-tight">
+        <span class="text-[10px] font-semibold text-mute tracking-wide">교수신문 AI 교육 웹앱 시리즈</span>
+        <span class="text-lg font-black tracking-tight">03 디지털 플래시카드 학습기</span>
+      </span>
+    </h1>
+    <div class="flex items-center justify-end gap-3">
+      <span id="modeBadge" class="hidden sm:inline-flex"></span>
+      <div class="font-disp flex items-end gap-1 leading-none">
+        <span id="dMonth" class="text-xl font-semibold"></span><span id="dDay" class="text-3xl font-bold"></span>
+        <span class="flex flex-col text-[10px] font-semibold ml-1"><span id="dYear"></span><span id="dWeek"></span></span>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid gap-10 lg:grid-cols-[minmax(0,5fr)_minmax(0,7fr)] items-start">
+
+  <!-- 좌측: 설정 · 카드 생성 · 히스토리 -->
+  <section class="space-y-8 min-w-0 order-2 lg:order-1">
+    <div>
+      <div class="sec-head">🤔 What is “플래시카드 학습기”?</div>
+      <p class="mt-6 font-disp text-[2.6rem] sm:text-5xl font-semibold tracking-[0.12em] leading-[1.05]">TERM<br><span class="text-3xl font-normal">×</span><br>FLIP</p>
+      <p class="mt-5 text-sm leading-7 font-medium">
+        카드를 클릭하면 <b>앞면(용어)과 뒷면(설명)</b>이 뒤집힙니다.
+        외운 카드는 <b class="text-[#2f7a46]">암기 완료</b>, 헷갈리는 카드는 <b class="text-[#a8392f]">재학습</b>으로 나눠 진도를 관리하세요.
+        강의 노트나 주제만 넣으면 AI가 카드를 만들어 줍니다.
+      </p>
+    </div>
+
+    <!-- AI 설정 -->
+    <div class="space-y-4">
+      <button type="button" class="sec-head sec-toggle w-full text-left" aria-expanded="true" aria-controls="body-ai" data-collapse="ai">
+        🔑 AI SETTING <small>—— 제공자 · 키 · 모델</small>
+        <span class="ml-auto flex items-center gap-2 min-w-0"><span class="sec-sum" id="sum-ai"></span><span class="chev" aria-hidden="true"></span></span>
+      </button>
+      <div id="body-ai" class="space-y-4">
+        <div class="grid grid-cols-3 gap-2" role="radiogroup" aria-label="AI 제공자">
+          <label class="chip cursor-pointer"><input type="radio" name="provider" value="claude" class="sr-only" checked>
+            <span class="block text-center rounded-full glass-chip py-2 text-sm font-medium transition">Claude</span></label>
+          <label class="chip cursor-pointer"><input type="radio" name="provider" value="openai" class="sr-only">
+            <span class="block text-center rounded-full glass-chip py-2 text-sm font-medium transition">OpenAI</span></label>
+          <label class="chip cursor-pointer"><input type="radio" name="provider" value="gemini" class="sr-only">
+            <span class="block text-center rounded-full glass-chip py-2 text-sm font-medium transition">Gemini</span></label>
+        </div>
+        <div>
+          <label for="apiKey" class="block text-xs font-bold mb-1.5"><span id="keyLabel">Claude</span> API 키 <span class="font-normal text-mute">(선택)</span></label>
+          <div class="flex gap-2">
+            <input id="apiKey" type="password" autocomplete="off" class="field flex-1 min-w-0">
+            <button id="toggleKey" type="button" class="pill px-4 text-xs">보기</button>
+          </div>
+          <div class="mt-2 flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+            <label class="inline-flex items-center gap-2 text-xs font-medium cursor-pointer">
+              <input id="rememberKey" type="checkbox" class="switch" checked>
+              <span id="rememberLabel">키 저장 켜짐 (새로고침 후에도 유지)</span>
+            </label>
+            <button id="forgetKeys" type="button" class="pill px-3 py-1 text-[11px]">저장된 키 삭제</button>
+          </div>
+          <p id="keyNote" class="mt-1.5 text-[11px] text-mute">키는 이 기기의 브라우저에만 저장되고 선택한 제공자 API로만 전송됩니다. 공용 PC에서는 저장을 끄세요.</p>
+        </div>
+        <div>
+          <label for="model" class="block text-xs font-bold mb-1.5">모델 이름</label>
+          <div class="flex gap-2">
+            <input id="model" type="text" autocomplete="off" list="modelList" class="field flex-1 min-w-0 font-disp">
+            <datalist id="modelList"></datalist>
+            <button id="checkBtn" type="button" class="pill px-4 text-xs">연결 확인</button>
+          </div>
+          <div id="checkStatus" class="hidden mt-2 rounded-2xl px-3 py-2 text-xs" role="status"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 강의 정보 -->
+    <div class="space-y-3">
+      <button type="button" class="sec-head sec-toggle w-full text-left" aria-expanded="true" aria-controls="body-course" data-collapse="course">
+        🎓 COURSE INFO <small>—— 학습용 HTML 상단에 표시</small>
+        <span class="ml-auto flex items-center gap-2 min-w-0"><span class="sec-sum" id="sum-course"></span><span class="chev" aria-hidden="true"></span></span>
+      </button>
+      <div id="body-course" class="grid grid-cols-2 gap-2">
+        <label class="block min-w-0"><span class="block text-xs font-bold mb-1.5">대학</span>
+          <input data-course="univ" type="text" class="field" placeholder="예: 한국외국어대학교" autocomplete="organization"></label>
+        <label class="block min-w-0"><span class="block text-xs font-bold mb-1.5">학과</span>
+          <input data-course="dept" type="text" class="field" placeholder="예: 중국학대학"></label>
+        <label class="block min-w-0"><span class="block text-xs font-bold mb-1.5">교수명</span>
+          <input data-course="prof" type="text" class="field" placeholder="예: 박정원" autocomplete="name"></label>
+        <label class="block min-w-0"><span class="block text-xs font-bold mb-1.5">과목명</span>
+          <input data-course="course" type="text" class="field" placeholder="예: 중국어학개론"></label>
+        <div class="col-span-2 space-y-2">
+          <p id="courseSaveNote" class="rounded-2xl px-3 py-2 text-[11px] leading-relaxed"></p>
+          <div class="flex flex-wrap gap-2">
+            <button id="exportSettings" type="button" class="pill px-3 py-1.5 text-[11px]" title="강의 정보·덱·히스토리·설정을 JSON 파일로 저장 (API 키 제외)">설정 내보내기 ↓</button>
+            <label class="pill px-3 py-1.5 text-[11px] cursor-pointer" tabindex="0" id="importSettingsLabel" title="내보낸 JSON 파일에서 불러오기">설정 불러오기 ↑
+              <input id="importSettings" type="file" accept=".json,application/json" class="hidden"></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- AI 카드 생성 -->
+    <div class="space-y-3" id="genArea">
+      <div class="sec-head">✨ AI CARD MAKER <small>—— 강의 노트 · 주제로 카드 만들기</small></div>
+      <div role="tablist" aria-label="카드 만들기 방식" class="tablist rounded-full p-1 flex gap-1">
+        <button type="button" role="tab" id="tab-note" aria-controls="panel-note" data-tab="note"
+          class="tab-btn flex-1 py-2.5 font-disp text-xs font-semibold tracking-[0.08em]">📚 LECTURE NOTE</button>
+        <button type="button" role="tab" id="tab-topic" aria-controls="panel-topic" data-tab="topic"
+          class="tab-btn flex-1 py-2.5 font-disp text-xs font-semibold tracking-[0.08em]">💡 TOPIC</button>
+      </div>
+      <div id="panel-note" role="tabpanel" aria-labelledby="tab-note" class="space-y-2">
+        <textarea id="lecture" rows="8" placeholder="강의 노트를 붙여넣으세요. (텍스트 파일을 끌어다 놓아도 됩니다)" class="drop field resize-y leading-relaxed rounded-2xl" aria-label="강의 노트"></textarea>
+        <div class="flex items-center justify-between text-[11px] text-mute gap-2">
+          <button id="sampleNoteBtn" type="button" class="pill px-3 py-1 text-[11px]">샘플 노트 넣기</button>
+          <span class="font-disp"><span id="charCount">0</span> chars</span>
+        </div>
+      </div>
+      <div id="panel-topic" role="tabpanel" aria-labelledby="tab-topic" class="space-y-2 hidden">
+        <input id="topic" type="text" class="field" placeholder="예: 중국어 문법의 기초 — 양사와 보어" aria-label="주제">
+        <input id="topicNote" type="text" class="field" placeholder="(선택) 범위·조건 — 예: 대학 2학년 수준, 예문은 중국어로" aria-label="범위·조건">
+      </div>
+      <div class="glass rounded-[1.6rem] px-4 py-3">
+        <div class="flex items-center justify-between">
+          <label for="genCount" class="text-xs font-bold">카드 수</label>
+          <span class="font-disp text-lg font-semibold"><span id="genCountLabel">15</span><span class="text-xs text-mute font-medium"> 장</span></span>
+        </div>
+        <input id="genCount" type="range" min="5" max="100" step="1" value="15" class="range" aria-describedby="genCountHelp">
+        <div id="genCountHelp" class="relative h-3.5 mx-[.7rem] text-[10px] text-mute font-disp"><span class="absolute -translate-x-1/2" style="left:0.00%">5</span><span class="absolute -translate-x-1/2" style="left:21.05%">25</span><span class="absolute -translate-x-1/2" style="left:47.37%">50</span><span class="absolute -translate-x-1/2" style="left:73.68%">75</span><span class="absolute -translate-x-1/2" style="left:100.00%">100</span></div>
+        <div class="mt-3 pt-3 border-t border-black/[.07] shadow-[inset_0_1px_0_#fff]">
+          <div class="flex items-center justify-between gap-2 mb-1.5">
+            <p id="descLenLabel" class="text-xs font-bold">설명 분량</p>
+            <span id="descLenNote" class="text-[11px] text-mute font-medium"></span>
+          </div>
+          <div class="seg" role="radiogroup" aria-labelledby="descLenLabel">
+            <label><input type="radio" name="descLen" value="short" class="sr-only"><span>✏️ 짧게</span></label>
+            <label><input type="radio" name="descLen" value="normal" class="sr-only"><span>📝 보통</span></label>
+            <label><input type="radio" name="descLen" value="long" class="sr-only"><span>📖 자세히</span></label>
+            <label><input type="radio" name="descLen" value="xlong" class="sr-only"><span>📚 아주 자세히</span></label>
+          </div>
+        </div>
+      </div>
+      <button id="generateBtn" type="button" class="pill pill-dark w-full py-3.5 text-sm font-semibold">카드 생성 →</button>
+      <p id="genError" class="hidden rounded-2xl px-3 py-2 text-xs glass-ng" role="alert"></p>
+
+      <!-- 덱 히스토리 -->
+      <div class="pt-4 space-y-3">
+        <div class="sec-head">🗂 DECK HISTORY <small>—— 저장한 덱 다시 쓰기</small><span id="histCount" class="ml-auto font-disp text-[11px] text-mute"></span></div>
+        <div class="glass rounded-[1.6rem] px-2 sm:px-3 py-2">
+          <table class="tbl table-fixed">
+            <colgroup><col class="w-[3.4rem] sm:w-[4.6rem]"><col><col class="w-[2.2rem]"><col class="w-[2.3rem] sm:w-[2.6rem]"><col class="w-[2.3rem] sm:w-[2.6rem]"><col class="w-[2.3rem] sm:w-[2.6rem]"><col class="w-[2.3rem] sm:w-[2.6rem]"></colgroup>
+            <thead><tr><th>일시</th><th>교과목·주제</th><th class="!text-center">카드</th><th class="!text-center">열기</th><th class="!text-center">HTML</th><th class="!text-center">수정</th><th class="!text-center">삭제</th></tr></thead>
+            <tbody id="histBody"></tbody>
+          </table>
+          <p id="histEmpty" class="px-2 py-4 text-center text-[11px] text-mute">아직 저장한 덱이 없습니다. 덱 도구의 <b>“히스토리 저장”</b>을 누르면 여기에 쌓입니다.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 우측: 학습 화면 -->
+  <section class="min-w-0 space-y-6 order-1 lg:order-2" id="studyArea">
+    <!-- 덱 도구 -->
+    <div class="glass rounded-[2rem] p-4 sm:p-5 space-y-3">
+      <div class="flex flex-wrap items-center gap-2">
+        <label for="deckSel" class="font-disp text-xs font-semibold tracking-[0.12em] shrink-0">🃏 DECK</label>
+        <select id="deckSel" class="field !py-2 !rounded-full flex-1 min-w-[10rem] font-medium"></select>
+        <div class="flex gap-1.5">
+          <button type="button" class="pill icon-btn" data-deck="new" title="새 덱" aria-label="새 덱 만들기">＋</button>
+          <button type="button" class="pill icon-btn" data-deck="rename" title="덱 이름 바꾸기" aria-label="덱 이름 바꾸기">✎</button>
+          <button type="button" class="pill icon-btn" data-deck="delete" title="덱 삭제" aria-label="덱 삭제">✕</button>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        <button type="button" class="pill px-3 py-1.5 text-[11px]" data-deck="import">📥 일괄 등록</button>
+        <button type="button" class="pill px-3 py-1.5 text-[11px]" data-deck="edit">✏️ 카드 편집</button>
+        <button type="button" class="pill px-3 py-1.5 text-[11px]" data-deck="history">🗂 히스토리 저장</button>
+        <button type="button" class="pill px-3 py-1.5 text-[11px]" data-deck="html" title="학생이 파일만 열어 학습하고 결과 JSON을 제출">🎓 학습용 HTML ↓</button>
+        <button type="button" class="pill px-3 py-1.5 text-[11px]" data-deck="reset" title="암기·재학습 기록을 모두 미학습으로">↺ 기록 초기화</button>
+      </div>
+    </div>
+
+    <!-- 진도율 -->
+    <div class="space-y-2.5" aria-labelledby="progTitle">
+      <div class="flex items-end justify-between gap-3">
+        <div class="min-w-0">
+          <p id="progTitle" class="font-disp text-xs font-semibold tracking-[0.12em]">📈 PROGRESS</p>
+          <p id="deckTitle" class="text-sm font-bold truncate"></p>
+        </div>
+        <p class="font-disp leading-none shrink-0"><span id="progPct" class="text-4xl font-semibold">0</span><span class="text-lg text-mute">%</span></p>
+      </div>
+      <div class="bar" role="progressbar" aria-label="학습 진도율 (암기 완료 비율)" aria-valuemin="0" aria-valuemax="100" id="progBar"><i class="k" id="barK"></i><i class="a" id="barA"></i></div>
+      <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs font-medium">
+        <span class="inline-flex items-center gap-1.5"><span class="dot k"></span>암기 완료 <b id="cntK" class="font-disp">0</b></span>
+        <span class="inline-flex items-center gap-1.5"><span class="dot a"></span>재학습 <b id="cntA" class="font-disp">0</b></span>
+        <span class="inline-flex items-center gap-1.5"><span class="dot n"></span>미학습 <b id="cntN" class="font-disp">0</b></span>
+        <span class="ml-auto text-mute">전체 <b id="cntT" class="font-disp text-ink">0</b>장</span>
+      </div>
+    </div>
+
+    <!-- 복습 설정 -->
+    <div class="space-y-3">
+      <div class="seg" role="radiogroup" aria-label="복습 필터">
+        <label><input type="radio" name="filter" value="all" class="sr-only"><span>전체</span></label>
+        <label><input type="radio" name="filter" value="new" class="sr-only"><span>미학습</span></label>
+        <label><input type="radio" name="filter" value="again" class="sr-only"><span>재학습만</span></label>
+        <label><input type="radio" name="filter" value="known" class="sr-only"><span>암기 완료만</span></label>
+      </div>
+      <div class="flex flex-wrap items-center gap-x-5 gap-y-2.5 text-xs font-medium">
+        <label class="inline-flex items-center gap-2 cursor-pointer"><input id="optShuffle" type="checkbox" class="switch">순서 섞기</label>
+        <label class="inline-flex items-center gap-2 cursor-pointer"><input id="optReverse" type="checkbox" class="switch">앞뒤 바꾸기</label>
+        <label class="inline-flex items-center gap-2 cursor-pointer"><input id="optWeak" type="checkbox" class="switch">약한 카드 우선</label>
+        <div class="seg !p-1 ml-auto w-[11.5rem]" role="radiogroup" aria-label="읽기 음성 언어">
+          <label><input type="radio" name="lang" value="zh-CN" class="sr-only"><span class="!py-1">中文</span></label>
+          <label><input type="radio" name="lang" value="en-US" class="sr-only"><span class="!py-1">EN</span></label>
+          <label><input type="radio" name="lang" value="ko-KR" class="sr-only"><span class="!py-1">한국어</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 카드 디자인 템플릿 -->
+    <div class="space-y-2">
+      <p id="tplLabel" class="font-disp text-xs font-semibold tracking-[0.12em]">🎨 CARD STYLE <span class="font-sans font-medium tracking-normal text-mute">—— 덱마다 저장 · 학습용 HTML에도 적용</span></p>
+      <div id="tplPicker" class="grid grid-cols-5 gap-2 sm:gap-3" role="radiogroup" aria-labelledby="tplLabel"></div>
+    </div>
+
+    <!-- 카드 -->
+    <div id="cardWrap">
+      <div id="scene" class="scene h-[28rem] sm:h-[29rem]" tabindex="0" role="group" aria-roledescription="플래시카드" aria-label="플래시카드: 클릭하거나 Space로 뒤집기">
+        <div id="tilt" class="tilt"><div id="mover" class="mover">
+          <div id="flip" class="flip">
+            <div id="front" class="face front"></div>
+            <div id="back" class="face back"></div>
+          </div>
+        </div></div>
+        <div id="fx" class="fx" aria-hidden="true"></div>
+      </div>
+      <div id="emptyCard" class="hidden glass rounded-[2rem] h-[28rem] sm:h-[29rem] p-6 flex flex-col items-center justify-center gap-4 text-center">
+        <p id="emptyMsg" class="text-sm font-medium leading-7"></p>
+        <div id="emptyBtns" class="flex flex-wrap justify-center gap-2"></div>
+      </div>
+      <!-- 전체보기일 때만 보이는 조작 막대 -->
+      <div id="presentBar" class="items-center justify-center gap-2 sm:gap-3 flex-wrap" role="toolbar" aria-label="전체보기 조작">
+        <button type="button" class="pill px-5 py-2.5 text-sm" data-pv="prev" aria-keyshortcuts="ArrowLeft">← 이전</button>
+        <span id="presentPos" class="font-disp text-base font-semibold min-w-[5.5rem] text-center" aria-live="polite"></span>
+        <button type="button" class="pill pill-dark px-6 py-2.5 text-sm font-semibold" data-pv="flip" aria-keyshortcuts="Space">↻ 뒤집기</button>
+        <button type="button" class="pill px-5 py-2.5 text-sm" data-pv="next" aria-keyshortcuts="ArrowRight">다음 →</button>
+        <button type="button" class="pill px-4 py-2.5 text-sm" data-pv="exit" aria-keyshortcuts="Escape">✕ 닫기 <kbd>Esc</kbd></button>
+      </div>
+    </div>
+    <div class="flex justify-center -mt-2">
+      <button id="presentBtn" type="button" class="pill px-5 py-2 text-xs font-semibold" aria-pressed="false" aria-keyshortcuts="F">⛶ 전체보기 · 강의용 <kbd>F</kbd></button>
+    </div>
+
+    <!-- 이동 · 분류 -->
+    <div class="space-y-3">
+      <div class="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
+        <button id="prevBtn" type="button" class="pill py-2.5 text-sm" aria-keyshortcuts="ArrowLeft">← 이전</button>
+        <p class="font-disp text-sm font-semibold text-center min-w-[4.5rem]" aria-live="polite"><span id="posNow">0</span><span class="text-mute"> / <span id="posAll">0</span></span></p>
+        <button id="nextBtn" type="button" class="pill py-2.5 text-sm" aria-keyshortcuts="ArrowRight">다음 →</button>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <button id="knownBtn" type="button" class="pill pill-ok py-3.5 text-sm font-semibold" aria-keyshortcuts="1">✓ 암기 완료 <kbd>1</kbd></button>
+        <button id="againBtn" type="button" class="pill pill-ng py-3.5 text-sm font-semibold" aria-keyshortcuts="2">↻ 재학습 <kbd>2</kbd></button>
+      </div>
+      <p class="text-[11px] text-mute text-center leading-6">
+        <kbd>Space</kbd> 뒤집기 · <kbd>←</kbd><kbd>→</kbd> 이동 · <kbd>1</kbd> 암기 완료 · <kbd>2</kbd> 재학습 · 휴대폰은 카드를 좌우로 밀어 이동
+      </p>
+    </div>
+  </section>
+
+  <!-- 학습 집계 -->
+  <section id="report" class="order-3 lg:col-span-2 space-y-5 min-w-0">
+    <button type="button" class="sec-head sec-toggle w-full text-left" aria-expanded="true" aria-controls="body-report" data-collapse="report">
+      📊 STUDY REPORT <small>—— 학생 결과 파일(JSON) 집계</small>
+      <span class="ml-auto flex items-center gap-2 min-w-0"><span class="sec-sum" id="sum-report"></span><span class="chev" aria-hidden="true"></span></span>
+    </button>
+    <div id="body-report" class="space-y-5">
+      <div class="drop glass rounded-[2rem] p-5 flex flex-col sm:flex-row sm:items-center gap-3" id="resultDrop">
+        <p class="text-sm leading-6 flex-1 min-w-0">학생이 제출한 <b>결과 파일(.json)</b>을 여러 개 한꺼번에 고르거나 여기에 끌어다 놓으세요. 같은 학생·같은 덱은 가장 최근 파일만 집계합니다.</p>
+        <div class="flex flex-wrap gap-2 shrink-0">
+          <label class="pill pill-dark px-4 py-2 text-xs cursor-pointer" tabindex="0" id="resultPickLabel">결과 파일 불러오기 ↑
+            <input id="resultFiles" type="file" accept=".json,application/json" multiple class="hidden"></label>
+          <button id="reportCsv" type="button" class="pill px-4 py-2 text-xs" disabled>CSV ↓</button>
+          <button id="reportClear" type="button" class="pill px-4 py-2 text-xs" disabled>비우기</button>
+        </div>
+      </div>
+      <p id="reportMsg" class="hidden rounded-2xl px-3 py-2 text-xs" role="status"></p>
+      <div id="reportBody" class="hidden space-y-5">
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3" id="reportTiles"></div>
+        <div class="grid gap-5 xl:grid-cols-[minmax(0,7fr)_minmax(0,5fr)]">
+          <div class="glass rounded-[2rem] p-4 sm:p-5 min-w-0">
+            <p class="font-disp text-xs font-semibold tracking-[0.12em] mb-2">👩‍🎓 학생별 진도율 · 학습 시간</p>
+            <div class="overflow-x-auto"><table class="tbl"><thead><tr><th class="whitespace-nowrap">성명</th><th class="hidden sm:table-cell">학과</th><th>학번</th><th>진도율</th><th class="!text-center whitespace-nowrap">암기/재/미</th><th class="whitespace-nowrap">학습 시간</th></tr></thead><tbody id="stuBody"></tbody></table></div>
+          </div>
+          <div class="glass rounded-[2rem] p-4 sm:p-5 min-w-0">
+            <p class="font-disp text-xs font-semibold tracking-[0.12em] mb-2">🔁 카드별 재학습 비율</p>
+            <table class="tbl table-fixed"><colgroup><col><col class="w-[42%]"><col class="w-[4.2rem]"></colgroup><thead><tr><th>용어</th><th>재학습 학생 비율</th><th class="!text-right whitespace-nowrap">평균 횟수</th></tr></thead><tbody id="cardStatBody"></tbody></table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="mt-6 glass !border-x-0 !border-b-0 !rounded-none">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 py-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 text-xs text-[#5e5e64]">
+    <p class="font-disp tracking-wide">Copyright 2026 ⓒ Edu AI APP, All Rights Reserved.</p>
+    <p class="font-medium">박정원 교수 <span class="text-mute">(한국외국어대학교 중국학대학)</span></p>
+  </div>
+</footer>
+
+<div id="toast" class="hide fixed left-1/2 bottom-6 -translate-x-1/2 z-50 glass rounded-[1.4rem] px-5 py-2.5 text-sm font-medium max-w-[calc(100vw-2rem)] text-center" role="status" aria-live="polite"></div>
+
+<!-- 모달: 일괄 등록 -->
+<dialog id="importDlg" class="modal" aria-labelledby="importTitle">
+  <form method="dialog" class="modal-in">
+    <div class="modal-head"><p id="importTitle" class="font-disp text-sm font-semibold tracking-[0.08em]">📥 CSV · 텍스트 일괄 등록</p>
+      <button value="cancel" class="pill icon-btn ml-auto" aria-label="닫기">✕</button></div>
+    <div class="modal-body space-y-3">
+      <p class="text-xs leading-6 text-[#5e5e64]">한 줄에 카드 한 장: <b>용어, 설명</b> (세 번째 칸에 예문을 넣어도 됩니다). 쉼표 대신 탭도 됩니다. 설명 안에 쉼표가 있으면 설명을 큰따옴표("…")로 감싸세요. 엑셀에서 복사해 붙여넣거나 .csv·.txt 파일을 끌어다 놓으세요.</p>
+      <textarea id="importText" rows="10" class="drop field font-mono text-[13px] leading-relaxed rounded-2xl" placeholder="성조 (声调), 음절의 높낮이 변화로 뜻을 구별하는 소리의 특징&#10;양사 (量词), 사물이나 동작의 단위를 세는 말, 一本书 (책 한 권)" aria-label="일괄 등록 내용"></textarea>
+      <div class="flex flex-wrap items-center gap-2">
+        <label class="pill px-3 py-1.5 text-[11px] cursor-pointer" tabindex="0" id="importFileLabel">파일 선택 (.csv · .txt)
+          <input id="importFile" type="file" accept=".csv,.txt,text/csv,text/plain" class="hidden"></label>
+        <span id="importPreview" class="text-xs text-mute" aria-live="polite">0장 인식</span>
+      </div>
+      <div class="seg" role="radiogroup" aria-label="등록 방식">
+        <label><input type="radio" name="importMode" value="append" class="sr-only" checked><span>현재 덱에 추가</span></label>
+        <label><input type="radio" name="importMode" value="replace" class="sr-only"><span>현재 덱 교체</span></label>
+        <label><input type="radio" name="importMode" value="new" class="sr-only"><span>새 덱으로</span></label>
+      </div>
+    </div>
+    <div class="modal-foot">
+      <button value="cancel" class="pill px-5 py-2 text-sm">취소</button>
+      <button id="importDo" type="button" class="pill pill-dark px-5 py-2 text-sm font-semibold">등록하기</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 모달: 카드 편집기 -->
+<dialog id="editDlg" class="modal" aria-labelledby="editTitle">
+  <form method="dialog" class="modal-in">
+    <div class="modal-head"><p id="editTitle" class="font-disp text-sm font-semibold tracking-[0.08em]">✏️ CARD EDITOR</p>
+      <span id="editCount" class="text-xs text-mute"></span>
+      <button value="cancel" class="pill icon-btn ml-auto" aria-label="닫기">✕</button></div>
+    <div class="modal-body space-y-3" id="editList"></div>
+    <div class="modal-foot">
+      <button id="editAdd" type="button" class="pill px-4 py-2 text-sm mr-auto">＋ 카드 추가</button>
+      <button value="cancel" class="pill px-5 py-2 text-sm">취소</button>
+      <button id="editSave" type="button" class="pill pill-dark px-5 py-2 text-sm font-semibold">저장</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 모달: 내려받기 안내 (http 주소에서 브라우저가 내려받기를 막을 때) -->
+<dialog id="dlHelpDlg" class="modal sm" aria-labelledby="dlHelpTitle">
+  <form method="dialog" class="modal-in">
+    <div class="modal-head"><p id="dlHelpTitle" class="font-disp text-sm font-semibold">📥 파일이 받아지지 않았나요?</p>
+      <button value="cancel" class="pill icon-btn ml-auto" aria-label="닫기">✕</button></div>
+    <div class="modal-body space-y-3 text-[13px] leading-6">
+      <p>지금 주소(<b id="dlHelpHost"></b>)는 보안 연결(https)이 아니어서 크롬·엣지가 <b>“안전하지 않은 다운로드”</b>로 막을 수 있습니다.</p>
+      <ol class="list-decimal pl-5 space-y-1.5">
+        <li>주소창 오른쪽 <b>다운로드(↓) 아이콘</b>을 누르고, <b id="dlHelpName"></b> 옆의 <b>⋯ → 유지(계속)</b>를 고르세요.</li>
+        <li>또는 아래 <b>새 탭에서 열기</b>를 누른 뒤, 열린 탭에서 <kbd>Ctrl</kbd>+<kbd>S</kbd>로 저장하세요.</li>
+        <li>이 PC에서는 <b>http://localhost:8080</b>으로 열면 막히지 않습니다.</li>
+      </ol>
+      <label class="inline-flex items-center gap-2 text-xs text-mute cursor-pointer"><input id="dlHelpHide" type="checkbox" class="switch">다음부터 이 안내 보지 않기</label>
+    </div>
+    <div class="modal-foot">
+      <button value="cancel" class="pill px-5 py-2 text-sm">받아졌어요</button>
+      <button id="dlHelpOpen" type="button" class="pill pill-dark px-5 py-2 text-sm font-semibold">새 탭에서 열기</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 모달: 확인 -->
+<dialog id="confirmDlg" class="modal sm" aria-labelledby="confirmMsg">
+  <form method="dialog" class="modal-in">
+    <div class="modal-body"><p id="confirmMsg" class="text-sm leading-7 font-medium"></p></div>
+    <div class="modal-foot">
+      <button value="cancel" class="pill px-5 py-2 text-sm">취소</button>
+      <button value="ok" class="pill pill-dark px-5 py-2 text-sm font-semibold">확인</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- 모달: 이름 입력 -->
+<dialog id="askDlg" class="modal sm" aria-labelledby="askTitle">
+  <form method="dialog" class="modal-in" id="askForm">
+    <div class="modal-head"><p id="askTitle" class="font-disp text-sm font-semibold"></p></div>
+    <div class="modal-body"><input id="askInput" type="text" class="field" aria-labelledby="askTitle"></div>
+    <div class="modal-foot">
+      <button value="cancel" class="pill px-5 py-2 text-sm">취소</button>
+      <button value="ok" class="pill pill-dark px-5 py-2 text-sm font-semibold">확인</button>
+    </div>
+  </form>
+</dialog>
+
+<script>
+// 화면·내려받는 파일에 표시되는 앱 버전. 수정할 때마다 올림: 새 기능 → 둘째 자리, 고침·디자인 → 셋째 자리
+// v1.16.1 전체보기(강의용): 카드 내용을 빈 공간 없이 채우도록 자동 확대(앞면 최대 1.6배·뒷면 2.4배), 요소 간격 넓힘
+// v1.16.0 카드 글자 색 구분: 핵심어 형광 강조(**), 한자·병음/영문·숫자·항목 머리말을 서로 다른 색으로 (템플릿별 색 조정)
+// v1.15.0 시각 자료 5종 추가(도표·흐름도·순환 다이어그램·구조도·벤 다이어그램), 카드마다 1~2개, AI가 내용에 맞는 형식 선택
+// v1.14.1 카드 뒷면 배치: 넓은 카드는 좌(용어·설명)·우(시각 자료·예문) 2단, 세로 가운데 정렬
+// v1.14.0 카드 내용 자동 맞춤: 넘치면 스크롤 대신 글자·그림을 줄여 한 화면에 모두 보이게 (본 앱·전체보기·학습용 HTML)
+// v1.13.1 전체보기(강의용)에서 카드를 16:9 비율로 화면 가운데에 맞춤
+// v1.13.0 설명을 개조식(항목별 "- ", ~함·~임 종결)으로: AI 지시문·샘플 카드·글머리 목록 표시·학습용 HTML
+// v1.12.0 AI 카드 생성 수를 5~100장으로 확장
+// v1.11.0 설명 분량 단계마다 2배로 늘림, 분량이 많으면 카드를 몇 번에 나눠 생성
+// v1.10.0 카드 하단 전체보기(강의용 전체 화면: 큰 글씨·이동·뒤집기 막대, F 키), 설명 분량 "아주 자세히" 추가
+// v1.9.0  덱 첫 장에 표지 카드: 앞면 교과 정보(대학·학과·교수·과목)와 주제, 뒷면 배울 용어 목록. 진도율에는 넣지 않음
+// v1.8.0  카드 디자인 템플릿 5종(소프트·노트·칠판·청사진·에디토리얼) 한 줄 선택기, 덱마다 저장, 학습용 HTML에도 적용
+// v1.7.0  AI CARD MAKER 설명 분량 설정(짧게·보통·자세히): 카드 생성·한 장 다시 만들기에 적용
+// v1.6.1  http 주소(내부망 IP)에서 내려받기가 "안전하지 않은 다운로드"로 막힐 때 안내 창과 새 탭 열기 우회 추가
+// v1.6.0  카드 이모지·시각 자료(막대·도넛 차트, 단계 흐름, 비교, 연표, 아이콘 그리드): 샘플·AI 생성·편집기·학습용 HTML 모두 적용
+// v1.5.1  학습용 HTML 내려받기 실패 수정(저장 위치를 묻는 브라우저에서 임시 주소를 너무 일찍 지움), HWPX 내려받기 삭제
+// v1.5.0  카드 모션: 이동 슬라이드 진입, 분류 도장·파티클·날아가기, 뒤집기 들림, 마우스 3D 기울기·광택, 휴대폰 드래그, 진도율 카운트업
+// v1.4.1  claude.ai 아티팩트 대응: AI는 claude.ai의 Claude, 내려받기는 저장 확인 창, 확인 창은 화면 안 모달
+// v1.4.0  STEP 5 학습용 HTML(학생 정보·진도·학습 시간·결과 JSON), 카드 목록 HWPX, 학습 집계·CSV, 카드 편집기, 덱 히스토리
+// v1.3.0  STEP 4 소프트 UI 통일(돌출 카드·눌린 입력칸·회색 pill·파란 포커스), 움직임 줄이기 → 페이드
+// v1.2.0  STEP 3 복습 필터·섞기·앞뒤 바꾸기·단축키·스와이프·약한 카드 우선·AI 추가 설명·TTS·여러 덱
+// v1.1.0  STEP 2 AI 설정(Claude·OpenAI·Gemini)·연결 확인·카드 자동 생성·키 저장·COURSE INFO
+// v1.0.0  STEP 1 기본 골격: 3D 플래시카드·암기 완료/재학습·진도율·CSV 일괄 등록·샘플 10장
+const APP_VERSION = 'v1.16.1';
+const PROVIDERS = {
+  claude: { name: 'Claude', model: 'claude-sonnet-5-5', placeholder: 'sk-ant-...' },
+  openai: { name: 'OpenAI', model: 'gpt-4.1', placeholder: 'sk-...' },
+  gemini: { name: 'Gemini', model: 'gemini-2.5-flash', placeholder: 'AIza...' }
+};
+const keys = { claude: '', openai: '', gemini: '' };
+const models = Object.fromEntries(Object.entries(PROVIDERS).map(([k, p]) => [k, p.model]));
+let provider = 'claude';
+let rememberKey = true;
+const COURSE_FIELDS = { univ: '대학', dept: '학과', prof: '교수', course: '과목' };
+const course = { univ: '', dept: '', prof: '', course: '' };
+const collapsed = { ai: false, course: false, report: false };
+const prefs = { filter: 'all', shuffle: false, reverse: false, weak: false, lang: 'ko-KR', genCount: 15, descLen: 'normal' };
+// 설명 분량: AI가 지킬 규칙과 화면 안내
+const DESC_LEN = {
+  short: { rule: '핵심 1~2항목, 전체 80자 안팎', note: '1~2항목 · 80자 안팎', tokens: 760 },
+  normal: { rule: '정의·특징 2~4항목, 전체 180자 안팎', note: '2~4항목 · 180자 안팎', tokens: 1040 },
+  long: { rule: '정의·특징·의의 4~6항목, 전체 320자 안팎', note: '4~6항목 · 320자 안팎', tokens: 1440 },
+  xlong: { rule: '정의·특징·구체적 예·의의·헷갈리는 개념과의 차이·배경 8~10항목, 전체 560자 안팎', note: '8~10항목 · 560자 안팎', tokens: 2000 }
+};
+// 설명 작성 방식: 개조식
+const BULLET_RULE = '개조식으로 작성. 각 항목은 "- "로 시작하고 줄바꿈(\\n)으로 나눔. 서술형 어미(~다, ~요)를 쓰지 않고 명사형(~함, ~임, ~됨) 또는 명사로 끝냄. 각 항목에서 가장 중요한 핵심어 1개는 **굵게**(앞뒤에 별표 두 개)로 감쌈';
+const FILTERS = ['all', 'new', 'again', 'known'];
+const LANGS = ['zh-CN', 'en-US', 'ko-KR'];
+
+const STATUS = { new: { label: '미학습', cls: '' }, known: { label: '암기 완료', cls: 'known' }, again: { label: '재학습', cls: 'again' } };
+
+const SAMPLE_CARDS = [
+  ['성조 (声调 shēngdiào)', '- 음절의 **높낮이 변화**로 뜻을 구별하는 소리의 특징\n- 표준 중국어는 네 개의 성조와 경성으로 구성됨', '妈 mā(어머니) · 麻 má(삼) · 马 mǎ(말) · 骂 mà(꾸짖다)', '🎵',
+    [{ type: 'table', title: '네 성조 한눈에 보기 (오도: 1=낮음 · 5=높음)', headers: ['성조', '오도', '높낮이', '예'], rows: [['1성', '55', '높고 평평', '妈 mā'], ['2성', '35', '올라감', '麻 má'], ['3성', '214', '내렸다 올림', '马 mǎ'], ['4성', '51', '뚝 떨어짐', '骂 mà']] }]],
+  ['한어병음 (汉语拼音 Hànyǔ Pīnyīn)', '- 로마자와 성조 부호로 중국어 발음을 적는 **표기 체계**\n- 1958년 중국에서 공포됨', '北京 → Běijīng', '🔤',
+    [{ type: 'tree', title: '한 음절의 구조', root: '음절 mā', children: [{ label: '성모', items: ['m'] }, { label: '운모', items: ['a'] }, { label: '성조', items: ['1성 ¯'] }] }, { type: 'bars', title: '병음 방안의 구성 요소 수', unit: '개', items: [{ label: '운모', value: 39 }, { label: '성모', value: 21 }, { label: '성조 (+경성)', value: 4 }] }]],
+  ['보통화 (普通话 pǔtōnghuà)', '- **중국의 표준어**\n- 표준음: 베이징 음 · 기초 방언: 북방 방언\n- 문법 규범: 모범적 현대 백화문', '请说普通话。Qǐng shuō pǔtōnghuà. (표준어를 쓰세요)', '🗣️',
+    [{ type: 'tree', title: '보통화의 세 기준', root: '보통화', children: [{ label: '표준음', items: ['베이징 음'] }, { label: '기초 방언', items: ['북방 방언'] }, { label: '문법 규범', items: ['현대 백화문'] }] }, { type: 'timeline', title: '보통화 보급의 주요 연도', items: [{ when: '1955', label: '"보통화"의 표준 정의 확정' }, { when: '1956', label: '국무원, 보통화 보급 지시' }, { when: '1982', label: '헌법에 보통화 보급 명시' }, { when: '2001', label: '국가통용언어문자법 시행' }] }]],
+  ['간체자 (简体字 jiǎntǐzì)', '- **획수를 줄여** 간략하게 만든 한자\n- 중국 대륙·싱가포르에서 사용함', '書 → 书, 學 → 学', '✂️',
+    [{ type: 'bars', title: '번체 → 간체 획수 비교', unit: '획', items: [{ label: '書 (번체)', value: 10 }, { label: '书 (간체)', value: 4 }, { label: '學 (번체)', value: 16 }, { label: '学 (간체)', value: 8 }, { label: '龍 (번체)', value: 16 }, { label: '龙 (간체)', value: 5 }] }]],
+  ['번체자 (繁體字 fántǐzì)', '- 간화 이전의 **전통 자형** 한자\n- 타이완·홍콩·마카오에서 주로 사용함', '龍(용) — 간체로는 龙', '🏮',
+    [{ type: 'venn', title: '간체자와 번체자', left: { title: '간체자만', items: ['书', '学', '龙'] }, both: { title: '모양이 같음', items: ['人', '大', '中'] }, right: { title: '번체자만', items: ['書', '學', '龍'] } }, { type: 'compare', title: '어디서 무엇을 쓰나', left: { title: '✂️ 간체자', points: ['중국 대륙', '싱가포르', '말레이시아 화교 사회'] }, right: { title: '🏮 번체자', points: ['타이완', '홍콩', '마카오'] } }]],
+  ['육서 (六书 liùshū)', '- 한자를 만들고 쓰는 **여섯 가지 원리**\n- 상형·지사·회의·형성·전주·가차', '日(상형), 上(지사), 休(회의), 河(형성)', '🧩',
+    [{ type: 'pie', title: '《설문해자》 글자의 구성 원리 (청 주준성 통계)', unit: '자', items: [{ label: '형성', value: 7697 }, { label: '회의', value: 1167 }, { label: '상형', value: 364 }, { label: '지사', value: 125 }] }, { type: 'table', title: '육서의 예', headers: ['원리', '예', '만든 방법'], rows: [['상형', '日', '해 모양을 본뜸'], ['지사', '上', '기준선 위에 점'], ['회의', '休', '사람(亻)+나무(木)'], ['형성', '河', '물(氵)+可(소리)']] }]],
+  ['형성자 (形声字 xíngshēngzì)', '- 뜻을 나타내는 **의부(意符)**와 소리를 나타내는 **성부(聲符)**를 합친 글자\n- 한자의 대부분을 차지함', '妈 = 女(뜻) + 马(소리)', '🔗',
+    [{ type: 'flow', title: '형성자가 만들어지는 과정', items: [{ label: '👩 女', note: '의부 · 뜻(여자)' }, { label: '🐴 马', note: '성부 · 소리(mǎ)' }, { label: '妈 mā', note: '어머니' }] }]],
+  ['양사 (量词 liàngcí)', '- 사물이나 동작의 **단위를 세는 말**\n- 수사와 명사 사이에 반드시 들어감', '一本书 yì běn shū (책 한 권)', '📏',
+    [{ type: 'icons', title: '자주 쓰는 양사', items: [{ emoji: '📕', label: '本 běn · 책' }, { emoji: '🧑', label: '个 gè · 사람·사물' }, { emoji: '📄', label: '张 zhāng · 종이' }, { emoji: '☕', label: '杯 bēi · 잔' }, { emoji: '🐱', label: '只 zhī · 동물' }] }]],
+  ['경성 (轻声 qīngshēng)', '- 본래 성조를 잃고 **짧고 가볍게** 읽히는 음절\n- 병음에 성조 부호를 붙이지 않음', '妈妈 māma, 桌子 zhuōzi', '🪶',
+    [{ type: 'compare', title: '경성이 자주 나타나는 자리', left: { title: '접미사', points: ['桌子 zhuōzi', '我们 wǒmen'] }, right: { title: '첩어·관용어', points: ['妈妈 māma', '东西 dōngxi (물건)'] } }]],
+  ['제3성 변조 (三声变调)', '- 제3성이 연이어 나올 때 일어나는 소리 변화\n- 앞의 3성이 **2성처럼** 바뀌어 읽힘', '你好 nǐ hǎo → ní hǎo', '🔁',
+    [{ type: 'flow', title: '你好를 읽는 과정', items: [{ label: '你 nǐ + 好 hǎo', note: '3성 + 3성' }, { label: '앞 음절 3성 → 2성', note: '제3성 변조 규칙' }, { label: 'ní hǎo', note: '실제 발음' }] }]]
+];
+const SAMPLE_NOTE = `[중국어학개론 3주차] 중국어의 소리와 문자
+표준 중국어(보통화)는 베이징 음을 표준음으로 한다. 음절은 성모·운모·성조로 이루어지며, 성조는 네 가지(1~4성)와 경성이 있다.
+같은 음절이라도 성조가 다르면 뜻이 달라진다(妈 mā, 麻 má, 马 mǎ, 骂 mà). 3성이 연이어 나오면 앞 3성은 2성으로 읽는다(你好 → ní hǎo).
+발음 표기는 1958년 공포된 한어병음 방안을 따른다. 문자는 대륙에서 간체자, 타이완·홍콩에서 번체자를 쓴다.
+한자의 구성 원리는 육서로 설명하며, 이 중 의부와 성부를 결합한 형성자가 가장 많다.
+문법적으로 중국어는 고립어로 어순과 허사가 중요하며, 명사를 셀 때는 반드시 양사를 쓴다(一本书, 三个人).`;
+
+// ---------- 공용 도구 ----------
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+const pad = n => String(n).padStart(2, '0');
+const fmtDate = (ts, short) => { const d = new Date(ts); return short ? `${pad(d.getMonth() + 1)}.${pad(d.getDate())}` : `${d.getFullYear()}.${pad(d.getMonth() + 1)}.${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fmtTime = ts => { const d = new Date(ts); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+const fmtDur = sec => { sec = Math.round(sec || 0); const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60), s = sec % 60; return h ? `${h}시간 ${m}분` : m ? `${m}분 ${pad(s)}초` : `${s}초`; };
+const newCard = (term, desc, example = '', emoji = '', visual = null) => ({ id: uid(), term: String(term).trim(), desc: String(desc).trim(), example: String(example || '').trim(),
+  emoji: String(emoji || '').trim().slice(0, 8), visual: visual && typeof visual === 'object' ? visual : null, status: 'new', again: 0, extra: null });
+const sampleCards = () => SAMPLE_CARDS.map(([t, d, x, m, v]) => newCard(t, d, x, m, v));
+const cleanName = s => String(s || '').replace(/[\\/:*?"<>|\s]+/g, '_').slice(0, 60);
+
+let toastTimer;
+function toast(msg) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.remove('hide');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.add('hide'), 2400);
+}
+// claude.ai 아티팩트로 열면 외부 API 호출·직접 내려받기가 막혀 있어 Claude(sample)·저장 확인 창(downloads)으로 대신함
+const HOST = { inArtifact: !!window.claude?.use, sample: null, downloads: null };
+if (HOST.inArtifact) {
+  window.claude.use('sample').then(x => { HOST.sample = x; updateMode(); }).catch(() => {});
+  window.claude.use('downloads').then(x => { HOST.downloads = x; }).catch(() => {});
+}
+// 내려받기: 저장되면 true
+async function download(content, filename, type = 'text/html') {
+  const blob = content instanceof Blob ? content : new Blob([content], { type: `${type};charset=utf-8` });
+  if (HOST.inArtifact) {
+    if (!HOST.downloads) { toast('이 화면에서는 파일 저장을 쓸 수 없습니다. 아티팩트 메뉴의 권한을 확인하세요.'); return false; }
+    try {
+      await HOST.downloads.save({ filename, data: blob });
+      return true;
+    } catch (e) {
+      if (e?.code !== 'declined') toast(`파일을 저장하지 못했습니다 (${e?.code || '알 수 없는 오류'}).`);
+      return false;
+    }
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.rel = 'noopener';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 120000);
+  if (location.protocol === 'http:' && !window.isSecureContext) showDlHelp(a.href, filename);
+  return true;
+}
+// http 주소(예: http://192.168.0.68:8080)에서는 브라우저가 내려받기를 막을 수 있어 안내와 우회 방법을 보여 줌
+let dlHelpOff = false;
+try { dlHelpOff = localStorage.getItem('flipcard-dlhelp-off') === '1'; } catch {}
+function showDlHelp(url, filename) {
+  if (dlHelpOff || $('dlHelpDlg').open) return;
+  $('dlHelpHost').textContent = location.host;
+  $('dlHelpName').textContent = filename;
+  $('dlHelpHide').checked = false;
+  $('dlHelpOpen').onclick = () => { if (!window.open(url, '_blank')) toast('팝업이 막혔습니다. 주소창 오른쪽의 팝업 차단 아이콘에서 허용하세요.'); };
+  $('dlHelpDlg').onclose = () => {
+    if (!$('dlHelpHide').checked) return;
+    dlHelpOff = true;
+    try { localStorage.setItem('flipcard-dlhelp-off', '1'); } catch {}
+  };
+  setTimeout(() => $('dlHelpDlg').showModal(), 400);
+}
+function confirmBox(msg) {
+  return new Promise(resolve => {
+    const dlg = $('confirmDlg');
+    $('confirmMsg').textContent = msg;
+    dlg.returnValue = '';
+    dlg.onclose = () => resolve(dlg.returnValue === 'ok');
+    dlg.showModal();
+  });
+}
+const stamp = () => { const d = new Date(); return `${d.getFullYear()}${pad(d.getMonth() + 1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}`; };
+
+// ---------- 브라우저 저장 (막힌 환경에서도 앱은 동작) ----------
+const SET_KEY = 'flipcard-settings', DATA_KEY = 'flipcard-data';
+const storageOK = (() => { try { localStorage.setItem('__flip', '1'); localStorage.removeItem('__flip'); return true; } catch { return false; } })();
+let decks = [], currentId = null, history = [];
+
+function applySettings(s) {
+  if (!s || typeof s !== 'object') return;
+  for (const k in keys) if (typeof s.keys?.[k] === 'string') keys[k] = s.keys[k];
+  for (const k in models) if (typeof s.models?.[k] === 'string' && s.models[k].trim()) models[k] = s.models[k];
+  if (PROVIDERS[s.provider]) provider = s.provider;
+  if (typeof s.remember === 'boolean') rememberKey = s.remember;
+  for (const k in course) if (typeof s.course?.[k] === 'string') course[k] = s.course[k];
+  for (const k in collapsed) if (typeof s.collapsed?.[k] === 'boolean') collapsed[k] = s.collapsed[k];
+  const p = s.prefs || {};
+  if (FILTERS.includes(p.filter)) prefs.filter = p.filter;
+  ['shuffle', 'reverse', 'weak'].forEach(k => { if (typeof p[k] === 'boolean') prefs[k] = p[k]; });
+  if (LANGS.includes(p.lang)) prefs.lang = p.lang;
+  if (Number.isInteger(p.genCount) && p.genCount >= 5 && p.genCount <= 100) prefs.genCount = p.genCount;
+  if (p.descLen in DESC_LEN) prefs.descLen = p.descLen;
+}
+const validCard = c => c && typeof c.term === 'string' && typeof c.desc === 'string';
+function applyData(d) {
+  if (!d || typeof d !== 'object') return false;
+  if (Array.isArray(d.decks)) {
+    decks = d.decks.filter(k => k && Array.isArray(k.cards)).map(k => ({
+      id: String(k.id || uid()), name: String(k.name || '이름 없는 덱'), subject: String(k.subject || ''), historyId: k.historyId || null, sample: !!k.sample, tpl: ['soft', 'note', 'chalk', 'blue', 'paper'].includes(k.tpl) ? k.tpl : 'soft',
+      created: k.created || Date.now(),
+      cards: k.cards.filter(validCard).map(c => ({ ...newCard(c.term, c.desc, c.example, c.emoji, c.visual), id: String(c.id || uid()),
+        status: STATUS[c.status] ? c.status : 'new', again: Number.isInteger(c.again) ? c.again : 0, extra: c.extra && typeof c.extra === 'object' ? c.extra : null }))
+    }));
+  }
+  if (Array.isArray(d.history)) history = d.history.filter(h => h && Array.isArray(h.cards)).map(h => ({ ...h, cards: h.cards.filter(validCard) }));
+  if (typeof d.currentId === 'string') currentId = d.currentId;
+  return true;
+}
+function saveSettings() {
+  try {
+    localStorage.setItem(SET_KEY, JSON.stringify({ provider, models, keys: rememberKey ? keys : {}, remember: rememberKey, course, collapsed, prefs }));
+    return true;
+  } catch { return false; }
+}
+let saveTimer;
+function saveData(now) {
+  clearTimeout(saveTimer);
+  const run = () => { try { localStorage.setItem(DATA_KEY, JSON.stringify({ decks, currentId, history })); } catch {} };
+  if (now) run(); else saveTimer = setTimeout(run, 250);
+}
+try { applySettings(JSON.parse(localStorage.getItem(SET_KEY) || 'null')); } catch {}
+try { applyData(JSON.parse(localStorage.getItem(DATA_KEY) || 'null')); } catch {}
+{
+  const byTerm = new Map(SAMPLE_CARDS.map(c => [c[0], c]));
+  decks.forEach(d => d.cards.forEach(c => {
+    const smp = byTerm.get(c.term);
+    if (smp && !c.emoji && !c.visual) { c.emoji = smp[3]; c.visual = smp[4]; }
+    if (smp && !Array.isArray(c.visual)) c.visual = smp[4]; // 예전 샘플(시각 자료 1개)을 새 샘플로
+    if (smp && !c.desc.includes('**')) c.desc = smp[1];
+  }));
+}
+
+function sampleDeck() {
+  return { id: uid(), name: '샘플 · 중국어학 기초 개념', subject: '중국어학개론', historyId: null, sample: true, created: Date.now(),
+    cards: sampleCards() };
+}
+// 등록된 카드가 하나도 없으면 샘플 10장으로 작동
+if (!decks.length) decks.unshift(sampleDeck());
+if (!decks.some(d => d.id === currentId)) currentId = decks[0].id;
+const cur = () => decks.find(d => d.id === currentId);
+
+// ---------- 시각 자료: 막대·도넛 차트, 단계 흐름, 비교, 연표, 아이콘 그리드 ----------
+// 학습용 HTML에도 이 함수 본문이 그대로 들어가므로 바깥 변수를 쓰지 않음
+const VIS_SHAPES = `{"type":"bars","title":"","unit":"","items":[{"label":"","value":0}]}
+{"type":"pie","title":"","unit":"","items":[{"label":"","value":0}]}
+{"type":"steps","title":"","items":["",""]}
+{"type":"compare","title":"","left":{"title":"","points":[""]},"right":{"title":"","points":[""]}}
+{"type":"timeline","title":"","items":[{"when":"","label":""}]}
+{"type":"icons","title":"","items":[{"emoji":"","label":""}]}
+{"type":"table","title":"","headers":["",""],"rows":[["",""]]}
+{"type":"flow","title":"","items":[{"label":"","note":""}]}
+{"type":"cycle","title":"","items":["","",""]}
+{"type":"tree","title":"","root":"","children":[{"label":"","items":[""]}]}
+{"type":"venn","title":"","left":{"title":"","items":[""]},"both":{"title":"","items":[""]},"right":{"title":"","items":[""]}}`;
+// 카드 내용에 맞는 형식 고르기 안내 (AI 지시문 공용)
+const VIS_GUIDE = `- visuals: 설명 내용을 한눈에 보여 주는 시각 자료 1~2개(배열). 내용에 가장 맞는 형식을 고르고 카드마다 다양하게 섞으세요.
+  비교·분류 → table·compare·venn, 과정·절차 → flow·steps, 순환·반복 → cycle, 구성·위계 → tree, 비율 → pie, 수량 비교 → bars, 시대 순서 → timeline, 종류 나열 → icons.
+  수치(bars·pie)는 교재·공식 자료로 확인된 값만 쓰고, 확실한 수치가 없으면 수치 없는 형식을 쓰세요. 각 항목은 20자 안팎으로 짧게, 항목은 2~6개.`;
+function visualHTML(v) {
+  if (Array.isArray(v)) return v.slice(0, 3).map(visualHTML).join('');
+  if (!v || typeof v !== 'object') return '';
+  const e = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const list = a => (Array.isArray(a) ? a : []).slice(0, 8);
+  const ICON = { bars: '📊', pie: '🍩', steps: '🪜', compare: '⚖️', timeline: '🕰️', icons: '🧭', table: '🧾', flow: '🔀', cycle: '🔄', tree: '🌳', venn: '⭕' };
+  const ALPHA = [1, .72, .5, .34, .22, .14, .09, .06];
+  const items = list(v.items);
+  let body = '';
+  if (v.type === 'bars' || v.type === 'pie') {
+    const rows = items.map(i => ({ label: String(i?.label ?? ''), value: Number(i?.value), unit: String(i?.unit ?? v.unit ?? '') }))
+      .filter(r => r.label && Number.isFinite(r.value) && r.value >= 0);
+    if (!rows.length) return '';
+    if (v.type === 'bars') {
+      const max = Math.max(...rows.map(r => r.value)) || 1;
+      body = rows.map((r, k) => `<div class="vz-row"><span class="vz-l" title="${e(r.label)}">${e(r.label)}</span><span class="vz-track"><i style="width:${Math.max(3, r.value / max * 100).toFixed(1)}%;animation-delay:${k * 90}ms"></i></span><b>${e(r.value.toLocaleString())}${e(r.unit)}</b></div>`).join('');
+    } else {
+      const total = rows.reduce((a, r) => a + r.value, 0) || 1;
+      let acc = 0;
+      const segs = rows.map((r, k) => {
+        const p = r.value / total * 100;
+        const c = `<circle class="seg" cx="21" cy="21" r="15.915" fill="none" stroke="rgba(47,123,246,${ALPHA[k]})" stroke-width="7" stroke-dasharray="${p.toFixed(2)} ${(100 - p).toFixed(2)}" stroke-dashoffset="${(-acc).toFixed(2)}"/>`;
+        acc += p;
+        return c;
+      }).join('');
+      body = `<div class="vz-pie"><svg viewBox="0 0 42 42" aria-hidden="true"><circle cx="21" cy="21" r="15.915" fill="none" style="stroke:var(--sunk)" stroke-width="7"/>${segs}</svg>
+        <div class="vz-leg">${rows.map((r, k) => `<span><i style="background:rgba(47,123,246,${ALPHA[k]})"></i><span class="vz-l">${e(r.label)}</span><b>${Math.round(r.value / total * 100)}%</b><small>${e(r.value.toLocaleString())}${e(r.unit)}</small></span>`).join('')}</div></div>`;
+    }
+  } else if (v.type === 'steps') {
+    const st = items.map(i => typeof i === 'string' ? i : i?.label).filter(Boolean);
+    if (!st.length) return '';
+    body = `<div class="vz-steps">${st.map((t, k) => `${k ? '<span class="vz-arrow" aria-hidden="true">→</span>' : ''}<span class="vz-step" style="--i:${k}">${e(t)}</span>`).join('')}</div>`;
+  } else if (v.type === 'compare') {
+    const side = x => x && typeof x === 'object' ? `<div><b>${e(x.title)}</b><ul>${list(x.points).map(p => `<li>${e(p)}</li>`).join('')}</ul></div>` : '';
+    if (!v.left || !v.right) return '';
+    body = `<div class="vz-cmp">${side(v.left)}${side(v.right)}</div>`;
+  } else if (v.type === 'timeline') {
+    const ev = items.filter(i => i && (i.when || i.label));
+    if (!ev.length) return '';
+    body = `<ol class="vz-tl">${ev.map((i, k) => `<li style="--i:${k}"><b>${e(i.when)}</b>${e(i.label)}</li>`).join('')}</ol>`;
+  } else if (v.type === 'icons') {
+    const ic = items.filter(i => i && i.label);
+    if (!ic.length) return '';
+    body = `<div class="vz-icons">${ic.map((i, k) => `<div style="--i:${k}"><span aria-hidden="true">${e(i.emoji || '•')}</span>${e(i.label)}</div>`).join('')}</div>`;
+  } else if (v.type === 'table') {
+    const head = list(v.headers).slice(0, 5).map(String);
+    const rows = list(v.rows).filter(Array.isArray).map(r => r.slice(0, 5));
+    if (!rows.length) return '';
+    body = `<div class="vz-tw"><table class="vz-table">${head.length ? `<thead><tr>${head.map(h => `<th>${e(h)}</th>`).join('')}</tr></thead>` : ''}<tbody>${rows.map((r, k) => `<tr style="--i:${k}">${r.map(c => `<td>${e(c)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+  } else if (v.type === 'flow') {
+    const nodes = items.map(i => typeof i === 'string' ? { label: i } : i).filter(i => i && i.label);
+    if (!nodes.length) return '';
+    body = `<div class="vz-flow">${nodes.map((n, k) => `${k ? '<span class="vz-down" aria-hidden="true">▼</span>' : ''}<div class="vz-node" style="--i:${k}"><b>${e(n.label)}</b>${n.note ? `<small>${e(n.note)}</small>` : ''}</div>`).join('')}</div>`;
+  } else if (v.type === 'cycle') {
+    const st = items.map(i => typeof i === 'string' ? i : i?.label).filter(Boolean).slice(0, 6);
+    if (st.length < 2) return '';
+    body = `<div class="vz-cycle"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="34" fill="none" style="stroke:rgba(47,123,246,.45)" stroke-width="1.4" stroke-dasharray="3 3"/><text x="50" y="56" text-anchor="middle" font-size="15">🔄</text></svg>${st.map((t, k) => {
+      const a = -Math.PI / 2 + k * 2 * Math.PI / st.length;
+      return `<span class="vz-node" style="--i:${k};left:${(50 + Math.cos(a) * 34).toFixed(1)}%;top:${(50 + Math.sin(a) * 34).toFixed(1)}%"><b>${k + 1}</b> ${e(t)}</span>`;
+    }).join('')}</div>`;
+  } else if (v.type === 'tree') {
+    const ch = list(v.children).map(c => typeof c === 'string' ? { label: c } : c).filter(c => c && c.label);
+    if (!v.root || !ch.length) return '';
+    body = `<div class="vz-tree"><div class="vz-node vz-root">${e(v.root)}</div><div class="vz-kids">${ch.map((c, k) => `<div class="vz-node" style="--i:${k}"><b>${e(c.label)}</b>${list(c.items).length ? `<ul>${list(c.items).map(x => `<li>${e(x)}</li>`).join('')}</ul>` : ''}</div>`).join('')}</div></div>`;
+  } else if (v.type === 'venn') {
+    if (!v.left || !v.right) return '';
+    const part = (x, def) => `<b>${e(x?.title || def)}</b><ul>${list(x?.items).map(i => `<li>${e(i)}</li>`).join('')}</ul>`;
+    body = `<div class="vz-venn"><i class="c1"></i><i class="c2"></i><div>${part(v.left, '')}</div><div class="vz-mid">${part(v.both, '공통')}</div><div>${part(v.right, '')}</div></div>`;
+  } else return '';
+  return `<figure class="vz">${v.title ? `<figcaption class="vz-t">${ICON[v.type]} ${e(v.title)}</figcaption>` : ''}${body}</figure>`;
+}
+const VIS_CSS = `
+.emo{display:block;font-size:clamp(2.6rem,7vw,3.6rem);line-height:1.1;margin-bottom:.55rem;filter:drop-shadow(0 8px 10px rgba(0,0,0,.16));animation:emo-pop .65s cubic-bezier(.2,1.4,.4,1) both}
+.emo-sm{margin-right:.3rem}
+@keyframes emo-pop{from{transform:scale(.3) rotate(-24deg);opacity:0}to{transform:none;opacity:1}}
+.vz{margin:.9rem 0 0;padding:.8rem .9rem;border-radius:1rem;background:var(--face);box-shadow:var(--raise-sm);border:1px solid rgba(0,0,0,.04)}
+.vz-t{margin:0 0 .55rem;font-size:11px;font-weight:700;letter-spacing:.03em;color:var(--mute)}
+.vz-row{display:grid;grid-template-columns:minmax(0,7rem) minmax(0,1fr) auto;align-items:center;gap:.55rem;font-size:12.5px;margin:.32rem 0}
+.vz-l{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vz-track{height:.62rem;border-radius:999px;background:var(--sunk);box-shadow:var(--press);overflow:hidden}
+.vz-track i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,rgba(var(--accent),.6),rgb(var(--accent)));transform-origin:left center}
+.vz-row b,.vz-leg b,.vz-tl b{font-variant-numeric:tabular-nums}
+.vz-pie{display:flex;align-items:center;gap:1rem;flex-wrap:wrap}.vz-pie svg{width:6.6rem;height:6.6rem;flex:none;transform:rotate(-90deg)}
+.vz-leg{display:grid;gap:.32rem;font-size:12.5px;min-width:9rem;flex:1}.vz-leg>span{display:grid;grid-template-columns:auto minmax(0,1fr) auto auto;align-items:center;gap:.4rem}
+.vz-leg i{width:.62rem;height:.62rem;border-radius:3px}.vz-leg small{color:var(--mute);font-size:10.5px;font-variant-numeric:tabular-nums}
+.vz-steps{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem}
+.vz-step{padding:.38rem .75rem;border-radius:999px;background:var(--sunk);box-shadow:var(--press);font-size:12.5px;font-weight:600}
+.vz-arrow{color:rgb(var(--accent));font-weight:800}
+.vz-cmp{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.5rem}
+.vz-cmp>div{padding:.6rem .75rem;border-radius:.85rem;background:var(--sunk);box-shadow:var(--press);font-size:12.5px;min-width:0;overflow-wrap:anywhere}
+.vz-cmp b{display:block;margin-bottom:.25rem}.vz-cmp ul{margin:0;padding-left:1.05rem}
+.vz-tl{list-style:none;margin:0 0 0 .3rem;padding:0 0 0 1rem;border-left:2px solid rgba(var(--accent),.35);display:grid;gap:.5rem}
+.vz-tl li{position:relative;font-size:12.5px;line-height:1.45}
+.vz-tl li::before{content:"";position:absolute;left:calc(-1rem - 6px);top:.3rem;width:10px;height:10px;border-radius:50%;background:rgb(var(--accent));box-shadow:0 0 0 3px var(--face)}
+.vz-tl b{margin-right:.5rem;color:rgb(var(--accent))}
+.vz-icons{display:grid;grid-template-columns:repeat(auto-fit,minmax(5.6rem,1fr));gap:.45rem}
+.vz-icons>div{text-align:center;padding:.55rem .35rem;border-radius:.85rem;background:var(--sunk);box-shadow:var(--press);font-size:11.5px;line-height:1.35;overflow-wrap:anywhere}
+.vz-icons span{display:block;font-size:1.5rem;margin-bottom:.2rem}
+.flip.flipped .vz-track i{animation:vz-grow .9s cubic-bezier(.2,.8,.2,1) both}
+.flip.flipped .vz-pie .seg{animation:vz-draw 1.1s ease-out both}
+.vz+.vz{margin-top:.7rem}
+.vz-node{display:block;padding:.4rem .65rem;border-radius:.8rem;background:var(--sunk);box-shadow:var(--press);font-size:12.5px;line-height:1.35;overflow-wrap:anywhere}
+.vz-node small{display:block;font-size:10.5px;color:var(--mute);font-weight:500}
+.vz-node ul{list-style:none;margin:.2rem 0 0;padding:0;font-size:11.5px;font-weight:500}
+.vz-tw{overflow-x:auto}
+.vz-table{width:100%;border-collapse:collapse;font-size:12px;font-variant-numeric:tabular-nums}
+.vz-table th{background:rgba(var(--accent),.1);color:rgb(var(--accent));font-weight:700;padding:.35rem .5rem;text-align:center;white-space:nowrap}
+.vz-table th:first-child{border-radius:.5rem 0 0 .5rem}.vz-table th:last-child{border-radius:0 .5rem .5rem 0}
+.vz-table td{padding:.35rem .5rem;border-top:1px solid rgba(0,0,0,.08);text-align:center}
+.vz-flow{display:grid;justify-items:center;gap:.15rem}
+.vz-flow .vz-node{width:100%;max-width:19rem;text-align:center}
+.vz-down{color:rgb(var(--accent));font-size:10px;line-height:1}
+.vz-cycle{position:relative;aspect-ratio:1;width:100%;max-width:15rem;margin:0 auto}
+.vz-cycle svg{position:absolute;inset:0;width:100%;height:100%}
+.vz-cycle .vz-node{position:absolute;transform:translate(-50%,-50%);max-width:48%;text-align:center;font-size:11.5px;padding:.3rem .5rem;background:var(--face);box-shadow:var(--raise-sm)}
+.vz-cycle .vz-node b{color:rgb(var(--accent))}
+.vz-tree{display:grid;justify-items:center;gap:.9rem}
+.vz-root{position:relative;font-weight:800;background:rgba(var(--accent),.12);box-shadow:none;color:rgb(var(--accent));padding:.45rem 1rem}
+.vz-root::after{content:"";position:absolute;left:50%;top:100%;width:2px;height:.9rem;background:rgba(var(--accent),.4)}
+.vz-kids{display:grid;grid-template-columns:repeat(auto-fit,minmax(5rem,1fr));gap:.45rem;width:100%;padding-top:.6rem;border-top:2px solid rgba(var(--accent),.4)}
+.vz-kids>.vz-node{position:relative;text-align:center}
+.vz-kids>.vz-node::before{content:"";position:absolute;left:50%;top:-.6rem;width:2px;height:.6rem;background:rgba(var(--accent),.4)}
+.vz-venn{position:relative;display:grid;grid-template-columns:1fr .8fr 1fr;align-items:center;min-height:8.5rem;font-size:11.5px;text-align:center}
+.vz-venn i{position:absolute;top:0;bottom:0;width:62%;border-radius:50%;background:rgba(var(--accent),.09);border:1.5px solid rgba(var(--accent),.45)}
+.vz-venn .c1{left:0}.vz-venn .c2{right:0}
+.vz-venn>div{position:relative;z-index:1;padding:.4rem .2rem;min-width:0;overflow-wrap:anywhere}
+.vz-venn ul{list-style:none;margin:.2rem 0 0;padding:0;display:grid;gap:.1rem;font-size:13px}
+.vz-mid b{color:rgb(var(--accent))}
+.flip.flipped .vz-node,.flip.flipped .vz-table tbody tr,.flip.flipped .vz-step,.flip.flipped .vz-icons>div,.flip.flipped .vz-tl li{animation:vz-in .5s cubic-bezier(.2,1.25,.4,1) both;animation-delay:calc(var(--i,0) * 90ms + .3s)}
+@keyframes vz-grow{from{transform:scaleX(0)}}
+@keyframes vz-draw{from{stroke-dasharray:0 100}}
+@keyframes vz-in{from{opacity:0;transform:translateY(8px) scale(.9)}}
+@media (prefers-reduced-motion:reduce){.emo,.flip.flipped .vz *{animation:none!important}}
+`;
+// ---------- 카드 디자인 템플릿 ----------
+const TEMPLATES = {
+  soft: { name: '소프트', icon: '☁️' },
+  note: { name: '노트', icon: '📓' },
+  chalk: { name: '칠판', icon: '🟩' },
+  blue: { name: '청사진', icon: '📐' },
+  paper: { name: '에디토리얼', icon: '📰' }
+};
+const tplOf = d => TEMPLATES[d?.tpl] ? d.tpl : 'soft';
+// 본 앱(.term-big 등)과 학습용 HTML(.big 등)의 클래스를 함께 다룸
+const TPL_CSS = `
+.scene:not(.tpl-soft) .face.known{outline:2.5px solid rgba(var(--ok),.7);outline-offset:-7px}
+.scene:not(.tpl-soft) .face.again{outline:2.5px solid rgba(var(--ng),.65);outline-offset:-7px}
+/* 노트: 미색 줄 노트 + 파란 여백선 + 손글씨 용어 */
+.tpl-note .face{background:#fffdf5 repeating-linear-gradient(180deg,transparent 0 1.95rem,rgba(47,123,246,.16) 1.95rem 2rem);border:1px solid #e8e1cc;box-shadow:0 18px 30px -16px rgba(90,70,20,.32),0 2px 0 rgba(0,0,0,.04);padding-left:3.1rem}
+.tpl-note .face::before{content:"";position:absolute;left:2.2rem;top:0;bottom:0;width:1.5px;background:rgba(47,123,246,.32)}
+.tpl-note .term-big,.tpl-note .big,.tpl-note .term-mid,.tpl-note .tmid,.tpl-note .mini-t{font-family:'Nanum Pen Script',cursive;font-weight:400;letter-spacing:.01em}
+.tpl-note .term-big,.tpl-note .big{font-size:clamp(2.5rem,7.5vw,3.8rem);line-height:1.1}
+.tpl-note .term-mid,.tpl-note .tmid{font-size:clamp(2rem,6vw,2.8rem)}
+.tpl-note .ex,.tpl-note .vz{background:rgba(255,255,255,.75);box-shadow:none;border:1px dashed #d8cfb4}
+.tpl-note .vz-track,.tpl-note .vz-step,.tpl-note .vz-cmp>div,.tpl-note .vz-icons>div{background:#f5efdf;box-shadow:none}
+/* 칠판: 짙은 녹색 판 + 나무 틀 + 분필 글씨 */
+.tpl-chalk .face{background:radial-gradient(130% 100% at 30% 15%,#3d6150,#28433a 70%);color:#f2f5ee;border:9px solid #8b6a46;box-shadow:inset 0 0 0 2px rgba(0,0,0,.28),inset 0 0 46px rgba(0,0,0,.38),0 22px 32px -16px rgba(0,0,0,.5)}
+.tpl-chalk .term-big,.tpl-chalk .big,.tpl-chalk .term-mid,.tpl-chalk .tmid,.tpl-chalk .mini-t{font-family:'Nanum Pen Script',cursive;font-weight:400;color:#fff;text-shadow:0 0 1px rgba(255,255,255,.7),0 0 10px rgba(255,255,255,.12)}
+.tpl-chalk .term-big,.tpl-chalk .big{font-size:clamp(2.5rem,7.5vw,3.8rem);line-height:1.1}
+.tpl-chalk .term-mid,.tpl-chalk .tmid{font-size:clamp(2rem,6vw,2.8rem)}
+/* 청사진: 파란 모눈 + 흰 선 + 고정폭 라벨 */
+.tpl-blue .face{background-color:#1f4f8f;background-image:linear-gradient(rgba(255,255,255,.09) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.09) 1px,transparent 1px),linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:40px 40px,40px 40px,8px 8px,8px 8px;color:#eaf2ff;border:1px solid rgba(255,255,255,.3);box-shadow:inset 0 0 0 7px #1f4f8f,inset 0 0 0 8px rgba(255,255,255,.4),0 22px 32px -16px rgba(10,30,70,.55)}
+.tpl-blue .lbl,.tpl-blue .vz-t,.tpl-blue .face-hint,.tpl-blue .hint,.tpl-blue .st{font-family:ui-monospace,Consolas,'Courier New',monospace;letter-spacing:.08em}
+.tpl-blue .term-big,.tpl-blue .big,.tpl-blue .term-mid,.tpl-blue .tmid,.tpl-blue .mini-t{letter-spacing:.02em;color:#fff}
+/* 칠판·청사진 공통: 어두운 바탕의 글자·상자 */
+.tpl-chalk .lbl,.tpl-chalk .face-hint,.tpl-chalk .hint,.tpl-chalk .text-mute,.tpl-chalk .face [class*="5e5e64"],.tpl-chalk .tsm,.tpl-chalk .vz-t,.tpl-chalk .vz-leg small,
+.tpl-blue .lbl,.tpl-blue .face-hint,.tpl-blue .hint,.tpl-blue .text-mute,.tpl-blue .face [class*="5e5e64"],.tpl-blue .tsm,.tpl-blue .vz-t,.tpl-blue .vz-leg small{color:rgba(240,246,255,.72)!important}
+.tpl-chalk .ex,.tpl-chalk .vz,.tpl-chalk .extra,.tpl-blue .ex,.tpl-blue .vz,.tpl-blue .extra{background:rgba(255,255,255,.06);box-shadow:none;border:1px dashed rgba(255,255,255,.32);color:inherit}
+.tpl-chalk .extra,.tpl-blue .extra{padding:.6rem .8rem;border-radius:1rem}
+.tpl-chalk .vz-track,.tpl-chalk .vz-step,.tpl-chalk .vz-cmp>div,.tpl-chalk .vz-icons>div,.tpl-blue .vz-track,.tpl-blue .vz-step,.tpl-blue .vz-cmp>div,.tpl-blue .vz-icons>div{background:rgba(0,0,0,.2);box-shadow:none;color:inherit}
+.tpl-chalk .vz-node,.tpl-blue .vz-node{background:rgba(0,0,0,.2);box-shadow:none;color:inherit}
+.tpl-chalk .vz-node small,.tpl-blue .vz-node small{color:rgba(240,246,255,.7)}
+.tpl-chalk .vz-table th,.tpl-blue .vz-table th,.tpl-chalk .vz-root,.tpl-blue .vz-root,.tpl-chalk .vz-mid b,.tpl-blue .vz-mid b,.tpl-chalk .vz-cycle .vz-node b,.tpl-blue .vz-cycle .vz-node b,.tpl-chalk .vz-down,.tpl-blue .vz-down{background-color:rgba(255,255,255,.1);color:#fff}
+.tpl-chalk .vz-mid b,.tpl-blue .vz-mid b,.tpl-chalk .vz-cycle .vz-node b,.tpl-blue .vz-cycle .vz-node b,.tpl-chalk .vz-down,.tpl-blue .vz-down{background-color:transparent}
+.tpl-chalk .vz-table td,.tpl-blue .vz-table td{border-top-color:rgba(255,255,255,.15)}
+.tpl-chalk .vz-root::after,.tpl-blue .vz-root::after,.tpl-chalk .vz-kids>.vz-node::before,.tpl-blue .vz-kids>.vz-node::before{background:rgba(255,255,255,.45)}
+.tpl-chalk .vz-kids,.tpl-blue .vz-kids{border-top-color:rgba(255,255,255,.45)}
+.tpl-chalk .vz-venn i,.tpl-blue .vz-venn i{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.5)}
+.tpl-chalk .vz-cycle circle,.tpl-blue .vz-cycle circle{stroke:rgba(255,255,255,.5)!important}
+.tpl-note .vz-node,.tpl-paper .vz-node{background:#f3eee0;box-shadow:none}
+.tpl-paper .vz-node{background:#f0f0ec}
+.tpl-chalk .vz-track i,.tpl-blue .vz-track i{background:linear-gradient(90deg,rgba(255,255,255,.55),#fff)}
+.tpl-chalk .vz-arrow,.tpl-blue .vz-arrow,.tpl-chalk .vz-tl b,.tpl-blue .vz-tl b{color:#fff}
+.tpl-chalk .vz-tl,.tpl-blue .vz-tl{border-left-color:rgba(255,255,255,.35)}
+.tpl-chalk .vz-tl li::before,.tpl-blue .vz-tl li::before{background:#fff;box-shadow:none}
+.tpl-chalk .st,.tpl-blue .st{background:rgba(255,255,255,.08);box-shadow:none;border-color:rgba(255,255,255,.35);color:#fff}
+.tpl-chalk .face .pill,.tpl-chalk .face .btn,.tpl-blue .face .pill,.tpl-blue .face .btn{background:rgba(255,255,255,.12);color:#fff;border-color:rgba(255,255,255,.25);box-shadow:none;text-shadow:none}
+.tpl-chalk .face .pill:hover,.tpl-chalk .face .btn:hover,.tpl-blue .face .pill:hover,.tpl-blue .face .btn:hover{background:rgba(255,255,255,.22)!important}
+/* 에디토리얼: 흰 종이 + 검은 괘선 + 명조 제목 */
+.tpl-paper .face{background:#fbfbf8;border:1px solid #d6d6d0;border-radius:8px;box-shadow:inset 0 1px 0 #fff,0 26px 40px -26px rgba(0,0,0,.4)}
+.tpl-paper .face-top,.tpl-paper .ftop{border-bottom:1.5px solid #1d1d1f;padding-bottom:.5rem}
+.tpl-paper .term-big,.tpl-paper .big,.tpl-paper .term-mid,.tpl-paper .tmid,.tpl-paper .mini-t{font-family:'Noto Serif KR',serif;font-weight:700;letter-spacing:-.01em}
+.tpl-paper .lbl{letter-spacing:.22em}
+.tpl-paper .ex,.tpl-paper .vz{background:transparent;box-shadow:none;border:0;border-top:1px solid #d6d6d0;border-radius:0;padding-left:0;padding-right:0}
+.tpl-paper .vz-track,.tpl-paper .vz-step,.tpl-paper .vz-cmp>div,.tpl-paper .vz-icons>div{background:#f0f0ec;box-shadow:none}
+.tpl-paper .st{box-shadow:none;background:transparent}
+/* 템플릿 선택기 미리보기 */
+.tpl-opt{display:block;cursor:pointer;min-width:0;text-align:center}
+.tpl-mini{position:relative;display:block;height:3.6rem;border-radius:.9rem;transition:transform .2s cubic-bezier(.2,1.3,.4,1),box-shadow .2s}
+.tpl-mini .face{position:absolute;inset:0;padding:.3rem;gap:0;border-radius:.9rem;display:grid;place-items:center;backface-visibility:visible;-webkit-backface-visibility:visible}
+.tpl-mini.tpl-note .face{padding-left:1rem;background-size:auto;background-image:repeating-linear-gradient(180deg,transparent 0 .62rem,rgba(47,123,246,.18) .62rem .68rem)}
+.tpl-mini.tpl-note .face::before{left:.65rem}
+.tpl-mini.tpl-chalk .face{border-width:4px}
+.tpl-mini.tpl-blue .face{background-size:12px 12px,12px 12px,4px 4px,4px 4px;box-shadow:inset 0 0 0 3px #1f4f8f,inset 0 0 0 4px rgba(255,255,255,.4)}
+.tpl-mini.tpl-paper .face{border-radius:5px}
+.tpl-mini .mini-t{font-size:1.15rem;font-weight:700;line-height:1;white-space:nowrap}
+.tpl-mini.tpl-note .mini-t,.tpl-mini.tpl-chalk .mini-t{font-size:1.5rem}
+.tpl-name{display:block;margin-top:.4rem;font-size:11px;font-weight:600;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tpl-opt:hover .tpl-mini{transform:translateY(-3px)}
+.tpl-opt input:checked+.tpl-mini{box-shadow:0 0 0 2.5px var(--bg),0 0 0 5px rgb(var(--accent));transform:translateY(-3px)}
+.tpl-opt input:checked~.tpl-name{color:var(--ink)}
+.tpl-opt input:focus-visible+.tpl-mini{box-shadow:var(--focus)}
+@media (prefers-reduced-motion:reduce){.tpl-mini{transition:none}.tpl-opt:hover .tpl-mini,.tpl-opt input:checked+.tpl-mini{transform:none}}
+`;
+// ---------- 개조식 설명: "- " 항목이나 여러 줄이면 글머리 목록으로 (학습용 HTML에도 이 함수 본문이 들어감) ----------
+// 글자 색 구분: **핵심어** → 형광 강조, 한자 → 청록, 병음·영문 → 보라, 숫자(+단위) → 주황
+function hiText(t) {
+  const e = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  t = String(t ?? '');
+  const re = /(\*\*[^*]+\*\*)|([\u3400-\u9fff\uf900-\ufaff]+)|([A-Za-z\u00c0-\u024f]{2,}(?:[ '’-][A-Za-z\u00c0-\u024f]+)*)|(\d[\d,.]*(?:\s?(?:년|%|자|획|개|장|성|명|세기|월|일|배|kg|km))?)/g;
+  let out = '', last = 0, m;
+  while ((m = re.exec(t))) {
+    out += e(t.slice(last, m.index));
+    if (m[1]) out += `<strong class="hl-em">${hiText(m[1].slice(2, -2))}</strong>`;
+    else if (m[2]) out += `<span class="hl-zh">${e(m[2])}</span>`;
+    else if (m[3]) out += `<span class="hl-en">${e(m[3])}</span>`;
+    else out += `<span class="hl-num">${e(m[4])}</span>`;
+    last = re.lastIndex;
+  }
+  return out + e(t.slice(last));
+}
+function descHTML(t) {
+  const e = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const lines = String(t ?? '').split(/\n+/).map(l => l.trim()).filter(Boolean);
+  const mark = /^[-•·▪∙]\s*/;
+  const line = l => { const k = l.match(/^([^:：]{1,14})[:：]\s*(.*)$/); return k ? `<b class="hl-key">${e(k[1])}</b> ${hiText(k[2])}` : hiText(l); };
+  if (lines.length <= 1 && !mark.test(lines[0] || '')) return line(lines.join(' '));
+  return `<ul class="bul">${lines.map(l => `<li>${line(l.replace(mark, ''))}</li>`).join('')}</ul>`;
+}
+// ---------- 카드 내용 자동 맞춤: 넘치면 내용을 .fit으로 감싸 zoom을 조금씩 줄임 (학습용 HTML에도 이 함수 본문이 들어감) ----------
+// max: 키울 수 있는 최대 배율 (숫자 하나, 또는 [앞면, 뒷면])
+function fitFaces(faces, max = 1) {
+  faces.forEach((face, idx) => {
+    const top = Array.isArray(max) ? max[idx] ?? 1 : max;
+    const body = face && face.querySelector('.face-body, .fbody, .cv-body');
+    if (!body) return;
+    let fit = body.firstElementChild;
+    if (!fit || !fit.classList.contains('fit') || body.children.length > 1) {
+      fit = document.createElement('div');
+      fit.className = 'fit';
+      while (body.firstChild) fit.appendChild(body.firstChild);
+      body.appendChild(fit);
+    }
+    // 재는 동안: 등장 애니메이션(작게 시작)은 멈추고, 스크롤바가 폭을 줄이지 않게 숨김
+    body.classList.add('fitting');
+    let z = 1;
+    fit.style.zoom = 1;
+    // 너무 작아지면(42% 아래) 읽기 어려우므로 거기서 멈추고 남는 부분만 스크롤
+    const over = () => body.scrollHeight > body.clientHeight + 1 || body.scrollWidth > body.clientWidth + 1;
+    while (over() && z > 0.42) {
+      z = Math.round((z - 0.04) * 100) / 100;
+      fit.style.zoom = z;
+    }
+    // 공간이 남으면 넘치기 직전까지 키움
+    while (z === 1 || (z > 1 && z < top)) {
+      if (z >= top) break;
+      const next = Math.round((z + 0.05) * 100) / 100;
+      fit.style.zoom = next;
+      if (over()) { fit.style.zoom = z; break; }
+      z = next;
+    }
+    body.classList.toggle('fitted', z < 1);
+    body.classList.remove('fitting');
+  });
+}
+// ---------- 표지 카드: 교과 정보 + 주제 (학습용 HTML에도 이 함수 본문이 그대로 들어감) ----------
+function coverHTML(o, side) {
+  const e = x => String(x ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const cards = Array.isArray(o.cards) ? o.cards : [];
+  if (side === 'front') {
+    const emos = [...new Set(cards.map(c => c.emoji).filter(Boolean))].slice(0, 6).join(' ');
+    const c = o.course || {};
+    const rows = [['대학', c.univ], ['학과', c.dept], ['교수', c.prof ? c.prof + ' 교수' : ''], ['과목', c.course || o.subject]].filter(r => r[1]);
+    return `<div class="cv-top"><span class="cv-tag">📘 표지 · COVER</span><span class="cv-n">카드 ${cards.length}장</span></div>
+      <div class="cv-body">
+        ${emos ? `<p class="cv-emo" aria-hidden="true">${e(emos)}</p>` : ''}
+        <p class="lbl">TOPIC · 주제</p>
+        <h2 class="cv-title">${e(o.title)}</h2>
+        ${rows.length ? `<dl class="cv-info">${rows.map(([k, v]) => `<div class="cv-box"><dt>${k}</dt><dd>${e(v)}</dd></div>`).join('')}</dl>` : (o.hint ? `<p class="cv-empty">${e(o.hint)}</p>` : '')}
+      </div>
+      <p class="cv-hint">카드를 누르면 배울 용어를 봅니다 · 다음 카드부터 학습 →</p>`;
+  }
+  return `<div class="cv-top"><span class="cv-tag">🗂 이 덱에서 배울 용어</span><span class="cv-n">${cards.length}개</span></div>
+    <div class="cv-body list"><ol class="cv-terms">${cards.map((c, k) => `<li class="cv-box" style="--i:${k}"><span aria-hidden="true">${e(c.emoji || '•')}</span>${e(c.term)}</li>`).join('')}</ol></div>
+    <p class="cv-hint">다음 카드부터 학습을 시작하세요 →</p>`;
+}
+const COVER_CSS = `
+.face{--c-zh:#0d7d88;--c-en:#7647cc;--c-num:#c4640f;--c-key:rgb(var(--accent));--c-mark:rgba(255,196,40,.5)}
+.hl-zh{color:var(--c-zh);font-weight:600}
+.hl-en{color:var(--c-en)}
+.hl-num{color:var(--c-num);font-weight:700;font-variant-numeric:tabular-nums}
+.hl-key{color:var(--c-key);font-weight:800}
+.hl-em{font-weight:800;background:linear-gradient(transparent 58%,var(--c-mark) 58%);padding:0 .1em;border-radius:2px;-webkit-box-decoration-break:clone;box-decoration-break:clone}
+.tpl-chalk .face,.tpl-blue .face{--c-zh:#86e3e9;--c-en:#d6b8ff;--c-num:#ffc47d;--c-key:#a8ccff;--c-mark:rgba(255,214,80,.32)}
+.tpl-note .face{--c-mark:rgba(255,196,40,.45)}
+.bul{list-style:none;margin:0;padding:0;display:inline-grid;gap:.4em;text-align:left;vertical-align:top}
+.bul li{position:relative;padding-left:1.05em}
+.bul li::before{content:"";position:absolute;left:.12em;top:.66em;width:.36em;height:.36em;border-radius:2px;background:rgb(var(--accent))}
+.tpl-chalk .bul li::before,.tpl-blue .bul li::before{background:#fff}
+.tpl-paper .bul li::before{background:#1d1d1f;border-radius:0}
+.cv-top{display:flex;align-items:center;gap:.5rem;min-height:1.9rem}
+.cv-tag{display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .75rem;border-radius:999px;font-size:11px;font-weight:700;background:rgba(var(--accent),.1);color:rgb(var(--accent));border:1.5px solid rgba(var(--accent),.35)}
+.cv-n{margin-left:auto;font-size:11px;font-weight:700;color:var(--mute);font-variant-numeric:tabular-nums}
+.cv-body{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;justify-content:center;text-align:center;gap:.35rem;padding:.2rem 0}
+.cv-body.list{justify-content:flex-start}
+.fit{min-width:0;width:100%}
+.fitting{overflow:hidden!important}
+.fitting *{animation:none!important}
+.face{container-type:inline-size}
+.back-body{display:flex;flex-direction:column}
+.back-body>.fit{margin-block:auto;display:grid;gap:1rem 1.75rem;align-items:center}
+.bk-main,.bk-side,.bk-extra{min-width:0}
+.bk-side{display:flex;flex-direction:column;gap:.8rem}
+.bk-side>*,.bk-extra>*{margin:0!important}
+@container (min-width: 36rem){
+  .back-body>.fit{grid-template-columns:minmax(0,1.1fr) minmax(0,1fr)}
+  .bk-extra{grid-column:1/-1}
+  .bk-main:has(+ .bk-extra),.bk-main:last-child{grid-column:1/-1}
+}
+.cv-body>.fit{display:flex;flex-direction:column;gap:.35rem}
+.face-body.center>.fit,.fbody.c>.fit{display:grid;place-items:center}
+.cv-body .lbl{margin:0}
+.cv-emo{font-size:clamp(1.6rem,5vw,2.2rem);letter-spacing:.12em;margin:0 0 .2rem;animation:emo-pop .65s cubic-bezier(.2,1.4,.4,1) both}
+.cv-title{margin:0;font-size:clamp(1.45rem,4.6vw,2.2rem);font-weight:800;line-height:1.3;word-break:keep-all;overflow-wrap:anywhere;text-wrap:balance}
+.cv-info{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem;margin:.9rem 0 0;text-align:left}
+.cv-box{padding:.5rem .7rem;border-radius:.85rem;background:var(--sunk);box-shadow:var(--press);min-width:0}
+.cv-info dt{font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--mute)}
+.cv-info dd{margin:0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+.cv-empty{font-size:12px;line-height:1.6;color:var(--mute);margin:.8rem 0 0}
+.cv-hint{text-align:center;font-size:11px;color:var(--mute);margin:0}
+.cv-terms{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:repeat(auto-fill,minmax(9.5rem,1fr));gap:.4rem;text-align:left}
+.cv-terms li{display:flex;align-items:center;gap:.45rem;font-size:12.5px;font-weight:600;line-height:1.35;overflow-wrap:anywhere}
+.cv-terms li span{flex:none}
+.flip.flipped .cv-terms li{animation:vz-in .45s cubic-bezier(.2,1.25,.4,1) both;animation-delay:calc(var(--i,0) * 45ms + .25s)}
+.tpl-note .cv-title,.tpl-chalk .cv-title{font-family:'Nanum Pen Script',cursive;font-weight:400;font-size:clamp(2.2rem,7vw,3.2rem);line-height:1.15}
+.tpl-paper .cv-title{font-family:'Noto Serif KR',serif}
+.tpl-note .cv-box,.tpl-paper .cv-box{background:rgba(255,255,255,.75);box-shadow:none;border:1px solid #e3dccb}
+.tpl-chalk .cv-box,.tpl-blue .cv-box{background:rgba(255,255,255,.08);box-shadow:none;border:1px dashed rgba(255,255,255,.3)}
+.tpl-chalk .cv-n,.tpl-chalk .cv-hint,.tpl-chalk .cv-info dt,.tpl-chalk .cv-empty,.tpl-blue .cv-n,.tpl-blue .cv-hint,.tpl-blue .cv-info dt,.tpl-blue .cv-empty{color:rgba(240,246,255,.72)}
+.tpl-chalk .cv-tag,.tpl-blue .cv-tag{background:rgba(255,255,255,.1);color:#fff;border-color:rgba(255,255,255,.4)}
+.tpl-chalk .cv-title,.tpl-blue .cv-title{color:#fff}
+@media (prefers-reduced-motion:reduce){.cv-emo,.flip.flipped .cv-terms li{animation:none!important}}
+`;
+document.head.insertAdjacentHTML('beforeend', `<style>${VIS_CSS}${TPL_CSS}${COVER_CSS}</style>`);
+function renderTplPicker() {
+  const cur0 = tplOf(cur());
+  $('tplPicker').innerHTML = Object.entries(TEMPLATES).map(([k, t]) => `<label class="tpl-opt">
+    <input type="radio" name="tpl" value="${k}" class="sr-only" ${k === cur0 ? 'checked' : ''}>
+    <span class="tpl-mini tpl-${k}" aria-hidden="true"><span class="face"><span class="mini-t">가 Aa</span></span></span>
+    <span class="tpl-name">${t.icon} ${t.name}</span></label>`).join('');
+}
+$('tplPicker').addEventListener('change', e => {
+  if (e.target.name !== 'tpl') return;
+  cur().tpl = e.target.value;
+  applyTpl();
+  enterCard(0);
+  saveData();
+  toast(`🎨 "${TEMPLATES[e.target.value].name}" 템플릿을 이 덱에 적용했습니다.`);
+});
+function applyTpl() {
+  const scene = $('scene'), want = 'tpl-' + tplOf(cur());
+  if (scene.classList.contains(want)) return;
+  Object.keys(TEMPLATES).forEach(k => scene.classList.remove('tpl-' + k));
+  scene.classList.add(want);
+  fitNow?.();
+}
+
+// ---------- 헤더 ----------
+$('appVersion').textContent = APP_VERSION;
+(() => {
+  const d = new Date();
+  $('dMonth').textContent = pad(d.getMonth() + 1);
+  $('dDay').textContent = pad(d.getDate());
+  $('dYear').textContent = d.getFullYear();
+  $('dWeek').textContent = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'][d.getDay()];
+})();
+const hasKey = () => keys[provider].trim().length > 0;
+const aiReady = () => !!HOST.sample || hasKey();
+function updateMode() {
+  $('modeBadge').innerHTML = HOST.sample ? '<span class="dot k"></span>AI · Claude (claude.ai)'
+    : hasKey() ? `<span class="dot k"></span>AI · ${PROVIDERS[provider].name} · ${esc(models[provider])}`
+    : '<span class="dot" style="background:rgb(47,123,246)"></span>SAMPLE MODE';
+  $('modeBadge').className = 'hidden sm:inline-flex items-center gap-2 rounded-full glass px-3 py-1 text-[11px] font-disp font-medium tracking-wide max-w-[16rem] truncate';
+  $('checkStatus').classList.add('hidden');
+  renderSummaries();
+}
+
+// ---------- AI 설정 ----------
+function syncProviderUI() {
+  document.querySelector(`input[name=provider][value=${provider}]`).checked = true;
+  $('apiKey').value = keys[provider];
+  $('apiKey').placeholder = `${PROVIDERS[provider].placeholder} (비워 두면 샘플 모드)`;
+  $('model').value = models[provider];
+  $('keyLabel').textContent = PROVIDERS[provider].name;
+  fillModelList([PROVIDERS[provider].model]);
+  updateMode();
+}
+$('toggleKey').onclick = () => {
+  const k = $('apiKey');
+  k.type = k.type === 'password' ? 'text' : 'password';
+  $('toggleKey').textContent = k.type === 'password' ? '보기' : '숨김';
+};
+$('apiKey').addEventListener('input', () => { keys[provider] = $('apiKey').value.trim(); updateMode(); saveSettings(); });
+$('model').addEventListener('input', () => { models[provider] = $('model').value.trim(); updateMode(); saveSettings(); });
+function renderRemember() {
+  $('rememberKey').checked = rememberKey;
+  $('rememberLabel').textContent = rememberKey ? '키 저장 켜짐 (새로고침 후에도 유지)' : '키 저장 꺼짐 (이 창을 닫으면 사라짐)';
+}
+$('rememberKey').addEventListener('change', () => {
+  rememberKey = $('rememberKey').checked;
+  renderRemember();
+  saveSettings();
+  toast(rememberKey ? '이제 API 키를 이 브라우저에 저장합니다.' : '키 저장을 껐습니다. 저장돼 있던 키도 지웠습니다.');
+});
+$('forgetKeys').onclick = () => {
+  Object.keys(keys).forEach(k => keys[k] = '');
+  $('apiKey').value = '';
+  saveSettings();
+  updateMode();
+  setCheckStatus('info', '저장된 API 키를 모두 삭제했습니다.');
+};
+document.querySelectorAll('input[name=provider]').forEach(r => r.addEventListener('change', () => { provider = r.value; syncProviderUI(); saveSettings(); }));
+
+// 연결 확인: 모델 조회 API로 키와 모델명을 함께 검증 (토큰 소모 없음)
+const CHECKERS = {
+  claude: (key, model) => fetch(`https://api.anthropic.com/v1/models/${encodeURIComponent(model)}`, {
+    headers: { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' } }),
+  openai: (key, model) => fetch(`https://api.openai.com/v1/models/${encodeURIComponent(model)}`, { headers: { authorization: `Bearer ${key}` } }),
+  gemini: (key, model) => fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}`, { headers: { 'x-goog-api-key': key } })
+};
+const getJSON = async (url, headers) => (await fetch(url, { headers })).json();
+const LISTERS = {
+  claude: async key => (await getJSON('https://api.anthropic.com/v1/models?limit=100',
+    { 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' })).data?.map(m => m.id) || [],
+  openai: async key => (await getJSON('https://api.openai.com/v1/models', { authorization: `Bearer ${key}` }))
+    .data?.map(m => m.id).filter(id => /^(gpt|o\d|chatgpt)/.test(id)) || [],
+  gemini: async key => (await getJSON('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200', { 'x-goog-api-key': key }))
+    .models?.filter(m => (m.supportedGenerationMethods || []).includes('generateContent'))
+    .map(m => m.name.replace(/^models\//, ''))
+    .filter(id => !/tts|image|audio|live|embedding|robotics|computer-use/.test(id)) || []
+};
+function fillModelList(ids) { $('modelList').innerHTML = [...new Set(ids)].map(id => `<option value="${esc(id)}"></option>`).join(''); }
+function setCheckStatus(kind, msg) {
+  const s = $('checkStatus');
+  s.textContent = msg;
+  s.className = 'mt-2 rounded-2xl px-3 py-2 text-xs ' + { ok: 'glass-ok', fail: 'glass-ng', info: 'glass-chip text-mute' }[kind];
+}
+async function checkConnection() {
+  if (HOST.inArtifact) return setCheckStatus('info', HOST.sample
+    ? '이 화면(claude.ai)에서는 외부 API로 바로 연결할 수 없어 claude.ai의 Claude가 카드를 만듭니다. 내 API 키는 파일을 내려받아 브라우저에서 직접 열 때 쓰입니다.'
+    : '이 화면(claude.ai)에서는 외부 API로 바로 연결할 수 없습니다. 파일을 내려받아 브라우저에서 직접 열어 쓰세요.');
+  const key = keys[provider].trim(), model = models[provider].trim() || PROVIDERS[provider].model, name = PROVIDERS[provider].name;
+  if (!key) return setCheckStatus('info', `${name} API 키를 먼저 입력하세요. 키가 없으면 샘플 모드로 작동합니다.`);
+  const btn = $('checkBtn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner"></span>확인 중';
+  const started = performance.now();
+  try {
+    const res = await CHECKERS[provider](key, model);
+    const body = await res.json().catch(() => ({}));
+    if (res.ok) setCheckStatus('ok', `✔ ${name} 연결 성공 · 모델 ${model} 사용 가능 (${Math.round(performance.now() - started)}ms)`);
+    else {
+      const reason = { 400: '요청 형식 오류(키 형식 확인)', 401: 'API 키가 올바르지 않음', 403: '권한 없음(키 권한·결제 상태 확인)', 404: `모델 "${model}"을 찾을 수 없음`, 429: '요청 한도 초과' }[res.status] || `HTTP ${res.status}`;
+      const detail = body?.error?.message;
+      setCheckStatus('fail', `✘ ${name} 연결 실패 · ${reason}${detail ? ` — ${detail}` : ''}`);
+      if (res.status === 404 || res.status === 400 && /model/i.test(detail || '')) await suggestModels(key);
+    }
+  } catch (err) {
+    setCheckStatus('fail', `✘ ${name} 서버에 연결할 수 없음 (네트워크·방화벽 확인) — ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '연결 확인';
+  }
+}
+// 모델명이 틀렸을 때: 그 키로 쓸 수 있는 모델을 버튼으로 제안
+async function suggestModels(key) {
+  const def = PROVIDERS[provider].model;
+  let ids = [];
+  try { ids = await LISTERS[provider](key); } catch {}
+  fillModelList([def, ...ids]);
+  const picks = [...new Set([def, ...ids.filter(id => id !== def)])].slice(0, 8);
+  $('checkStatus').insertAdjacentHTML('beforeend', `
+    <span class="block mt-2 text-[#5e5e64]">${ids.length ? `이 키로 쓸 수 있는 모델 ${ids.length}개를 찾았습니다. 하나를 고르세요:` : '아래 기본 모델로 되돌려 보세요:'}</span>
+    <span class="mt-1.5 flex flex-wrap gap-1.5">${picks.map(id =>
+      `<button type="button" data-model="${esc(id)}" class="pill px-2.5 py-0.5 text-[11px] font-disp">${esc(id)}${id === def ? ' (기본)' : ''}</button>`).join('')}</span>`);
+  $('checkStatus').querySelectorAll('[data-model]').forEach(b => b.onclick = () => {
+    $('model').value = b.dataset.model;
+    $('model').dispatchEvent(new Event('input'));
+    checkConnection();
+  });
+}
+$('checkBtn').onclick = checkConnection;
+
+// ---------- 강의 정보 ----------
+document.querySelectorAll('[data-course]').forEach(inp => {
+  inp.value = course[inp.dataset.course];
+  inp.addEventListener('input', () => { course[inp.dataset.course] = inp.value.trim(); renderSummaries(); if (view[pos] === COVER) renderCard(); showCourseSaved(saveSettings()); });
+});
+function showCourseSaved(saved) {
+  const note = $('courseSaveNote');
+  if (storageOK) {
+    note.className = 'rounded-2xl px-3 py-2 text-[11px] leading-relaxed glass-ok';
+    note.textContent = saved ? `✔ 이 브라우저에 자동 저장됨 · ${new Date().toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })}`
+      : '✔ 입력하면 이 브라우저에 자동 저장되어 새로고침 후에도 유지됩니다. 카드와 학습 기록도 자동 저장됩니다.';
+  } else {
+    note.className = 'rounded-2xl px-3 py-2 text-[11px] leading-relaxed glass-ng';
+    note.textContent = '⚠ 지금 화면은 브라우저 저장이 막힌 환경(미리보기 창·시크릿 모드 등)이라 새로고침하면 강의 정보·카드·학습 기록이 지워집니다. 이 파일을 크롬·엣지에서 직접 열거나, "설정 내보내기"로 JSON 파일에 보관했다가 "설정 불러오기"로 다시 넣으세요.';
+  }
+}
+function showCourseError(msg) { $('courseSaveNote').className = 'rounded-2xl px-3 py-2 text-[11px] leading-relaxed glass-ng'; $('courseSaveNote').textContent = '✘ ' + msg; }
+$('exportSettings').onclick = () => {
+  const data = { app: 'flipcard', version: 1, appVersion: APP_VERSION, course, prefs, provider, models, decks, currentId, history };
+  download(JSON.stringify(data, null, 2), `flipcard_settings_${stamp()}.json`, 'application/json');
+};
+$('importSettings').onchange = e => {
+  const file = e.target.files[0];
+  e.target.value = '';
+  if (!file) return;
+  file.text().then(text => {
+    let s;
+    try { s = JSON.parse(text); } catch { return showCourseError('설정 파일을 읽을 수 없습니다. 내보낸 JSON 파일인지 확인하세요.'); }
+    if (s?.app !== 'flipcard') return showCourseError('FLIPCARD에서 내보낸 설정 파일이 아닙니다.');
+    applySettings({ ...s, keys: undefined, remember: undefined }); // 파일에 키가 있어도 불러오지 않음
+    applyData(s);
+    if (!decks.length) decks.push(sampleDeck());
+    if (!cur()) currentId = decks[0].id;
+    document.querySelectorAll('[data-course]').forEach(inp => inp.value = course[inp.dataset.course]);
+    syncProviderUI();
+    applyPrefsUI();
+    saveSettings();
+    saveData(true);
+    refreshAll();
+    $('courseSaveNote').className = 'rounded-2xl px-3 py-2 text-[11px] leading-relaxed glass-ok';
+    $('courseSaveNote').textContent = `✔ "${file.name}"에서 강의 정보·덱 ${decks.length}개·히스토리 ${history.length}건을 불러왔습니다.${storageOK ? '' : ' (이 화면에서는 새로고침하면 다시 지워집니다)'}`;
+  });
+};
+if (!storageOK) $('keyNote').textContent = '⚠ 지금 화면은 브라우저 저장이 막혀 있어 키가 저장되지 않습니다. 이 파일을 크롬·엣지에서 직접 여세요.';
+// label 버튼도 키보드(Enter·Space)로 파일 선택
+['importSettingsLabel', 'resultPickLabel', 'importFileLabel'].forEach(id => $(id).addEventListener('keydown', e => {
+  if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); $(id).querySelector('input').click(); }
+}));
+
+// ---------- 섹션 접기/펼치기: 접히면 머리줄에 요약 ----------
+function setCollapsed(name, value) {
+  collapsed[name] = value;
+  document.querySelector(`[data-collapse="${name}"]`).setAttribute('aria-expanded', !value);
+  $(`body-${name}`).classList.toggle('hidden', value);
+}
+function renderSummaries() {
+  $('sum-ai').textContent = `${PROVIDERS[provider].name} · ${models[provider] || PROVIDERS[provider].model} · ${HOST.sample ? 'claude.ai의 Claude 사용' : hasKey() ? '키 입력됨' : '샘플 모드'}`;
+  $('sum-course').textContent = Object.keys(COURSE_FIELDS).filter(k => course[k]).map(k => k === 'prof' ? `${course[k]} 교수` : course[k]).join(' · ') || '미입력';
+  $('sum-report').textContent = results.length ? `${new Set(results.map(r => r.student.sid)).size}명 · 평균 ${avgProgress()}%` : '불러온 결과 없음';
+}
+document.querySelectorAll('[data-collapse]').forEach(btn => {
+  btn.onclick = () => { setCollapsed(btn.dataset.collapse, !collapsed[btn.dataset.collapse]); saveSettings(); };
+});
+
+// ---------- 탭: 강의 노트 / 주제 ----------
+let activeTab = 'note';
+function showTab(name) {
+  activeTab = name;
+  document.querySelectorAll('.tab-btn').forEach(b => {
+    const on = b.dataset.tab === name;
+    b.setAttribute('aria-selected', on);
+    b.tabIndex = on ? 0 : -1;
+    $(b.getAttribute('aria-controls')).classList.toggle('hidden', !on);
+  });
+}
+document.querySelectorAll('.tab-btn').forEach(b => {
+  b.onclick = () => showTab(b.dataset.tab);
+  b.onkeydown = e => {
+    if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+    const tabs = [...document.querySelectorAll('.tab-btn')];
+    const next = tabs[(tabs.indexOf(b) + 1) % tabs.length];
+    showTab(next.dataset.tab);
+    next.focus();
+  };
+});
+showTab('note');
+$('lecture').addEventListener('input', () => $('charCount').textContent = $('lecture').value.length.toLocaleString());
+$('sampleNoteBtn').onclick = () => { $('lecture').value = SAMPLE_NOTE; $('lecture').dispatchEvent(new Event('input')); };
+function setGenCount(n) {
+  prefs.genCount = Math.min(Math.max(n, 5), 100);
+  $('genCount').value = prefs.genCount;
+  $('genCountLabel').textContent = prefs.genCount;
+  $('genCount').style.setProperty('--fill', `${(prefs.genCount - 5) / 95 * 100}%`);
+  $('genCount').setAttribute('aria-valuetext', `${prefs.genCount}장`);
+}
+function setDescLen(v) {
+  prefs.descLen = v;
+  document.querySelector(`input[name=descLen][value=${v}]`).checked = true;
+  $('descLenNote').textContent = DESC_LEN[v].note;
+}
+document.querySelectorAll('input[name=descLen]').forEach(r => r.addEventListener('change', () => { setDescLen(r.value); saveSettings(); }));
+$('genCount').addEventListener('input', () => { setGenCount(Number($('genCount').value)); saveSettings(); });
+
+// 텍스트 파일 끌어다 놓기 (강의 노트 · 일괄 등록)
+document.querySelectorAll('.drop').forEach(z => {
+  ['dragover', 'dragenter'].forEach(ev => z.addEventListener(ev, e => { e.preventDefault(); z.classList.add('dragging'); }));
+  ['dragleave', 'drop'].forEach(ev => z.addEventListener(ev, e => { e.preventDefault(); z.classList.remove('dragging'); }));
+});
+$('lecture').addEventListener('drop', async e => {
+  const f = e.dataTransfer.files[0];
+  if (f) { $('lecture').value = await f.text(); $('lecture').dispatchEvent(new Event('input')); }
+});
+
+// ---------- AI 요청 ----------
+async function postJSON(url, headers, payload) {
+  const res = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers }, body: JSON.stringify(payload) });
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body?.error?.message || `HTTP ${res.status}`);
+  return body;
+}
+const REQUESTERS = {
+  async claude(key, model, text, maxTokens) {
+    const body = await postJSON('https://api.anthropic.com/v1/messages', {
+      'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true'
+    }, { model, max_tokens: maxTokens, messages: [{ role: 'user', content: text }] });
+    return (body.content || []).filter(c => c.type === 'text').map(c => c.text).join('');
+  },
+  async openai(key, model, text) {
+    const body = await postJSON('https://api.openai.com/v1/chat/completions', { authorization: `Bearer ${key}` },
+      { model, response_format: { type: 'json_object' }, messages: [{ role: 'user', content: text }] });
+    return body.choices?.[0]?.message?.content || '';
+  },
+  async gemini(key, model, text) {
+    const body = await postJSON(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(model)}:generateContent`,
+      { 'x-goog-api-key': key }, { contents: [{ role: 'user', parts: [{ text }] }], generationConfig: { responseMimeType: 'application/json' } });
+    return (body.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+  }
+};
+async function askAI(prompt, maxTokens = 4096) {
+  if (HOST.sample) {
+    try { return await HOST.sample.json(prompt, { modelTier: 'default' }); }
+    catch (e) { throw new Error(e?.code === 'not_granted' ? 'Claude 사용 권한이 없습니다. 아티팩트 메뉴의 권한에서 허용하세요.' : e?.message || e?.code || 'Claude 응답 실패'); }
+  }
+  const model = models[provider].trim() || PROVIDERS[provider].model;
+  const out = await REQUESTERS[provider](keys[provider].trim(), model, prompt, maxTokens);
+  const m = out.match(/\{[\s\S]*\}/);
+  if (!m) throw new Error('응답에서 JSON을 찾지 못했습니다.');
+  return JSON.parse(m[0]);
+}
+const needKeyMsg = () => `${PROVIDERS[provider].name} API 키가 필요합니다. 왼쪽 AI SETTING에 키를 넣어 주세요.`;
+
+// 카드 자동 생성
+async function generateCards() {
+  const hideErr = () => $('genError').classList.add('hidden');
+  const showErr = m => { $('genError').textContent = m; $('genError').classList.remove('hidden'); };
+  hideErr();
+  const n = prefs.genCount;
+  const note = $('lecture').value.trim(), topic = $('topic').value.trim(), cond = $('topicNote').value.trim();
+  if (activeTab === 'note' && !note) return showErr('강의 노트를 붙여넣거나 TOPIC 탭에서 주제를 입력하세요.');
+  if (activeTab === 'topic' && !topic) return showErr('주제를 입력하세요. 예: 중국어 문법의 기초 — 양사와 보어');
+  if (!aiReady()) {
+    setCollapsed('ai', false);
+    $('apiKey').focus();
+    return showErr(`${needKeyMsg()} 키가 없는 동안에는 샘플 덱(10장)으로 학습 기능을 체험할 수 있습니다.`);
+  }
+  const basis = activeTab === 'topic'
+    ? `주제 "${topic}"에 대해 대학 강의 수준에서 널리 인정된 정확한 지식만 사용하세요.${cond ? ` 조건: ${cond}` : ''}`
+    : '아래 강의 자료에 나온 내용만 근거로 하세요.';
+  const len = DESC_LEN[prefs.descLen];
+  const per = Math.max(3, Math.min(n, Math.floor(14000 / (len.tokens + 350))));
+  const makePrompt = (count, done) => `${activeTab === 'note' ? `<강의자료>\n${note.slice(0, 60000)}\n</강의자료>\n\n` : ''}당신은 대학 전공 강의용 암기 플래시카드 제작 전문가입니다. ${basis}
+- 시험에 나올 핵심 용어를 정확히 ${count}개 골라 중요도 순으로 카드를 만드세요.${done.length ? `
+- 이미 만든 용어는 빼고 새 용어만 고르세요: ${done.join(', ')}` : ''}
+- term: 용어. 원어·영문이 있으면 괄호로 병기 (예: "과적합 (overfitting)", "양사 (量词)")
+- desc: 암기용 한국어 설명. ${BULLET_RULE}. 분량: ${DESC_LEN[prefs.descLen].rule}. 이 분량을 꼭 지키고, term을 그대로 반복하지 말 것
+- example: 개념을 보여 주는 짧은 예문·사례 1개 (외국어 용어면 원문과 뜻을 함께)
+- emoji: 개념을 떠올리게 하는 이모지 1개
+${VIS_GUIDE}
+${VIS_SHAPES}
+- 용어끼리 겹치지 않게
+다른 설명 없이 JSON만 출력하세요:
+{"title":"덱 제목(과목·주제를 담은 짧은 이름)","cards":[{"term":"","desc":"","example":"","emoji":"","visuals":[{}]}]}`;
+  const btn = $('generateBtn');
+  btn.disabled = true;
+  const who = HOST.sample ? 'Claude' : PROVIDERS[provider].name;
+  try {
+    const cards = [];
+    let title = '';
+    for (let round = 0; cards.length < n && round < Math.ceil(n / per) + 2; round++) {
+      const count = Math.min(per, n - cards.length);
+      btn.innerHTML = `<span class="spinner"></span>${who}가 카드를 만드는 중… ${cards.length} / ${n}장`;
+      const d = await askAI(makePrompt(count, cards.map(c => c.term)), Math.min(32000, 1500 + count * (len.tokens + 350)));
+      title = title || String(d.title || '');
+      const seen = new Set(cards.map(c => c.term));
+      const got = (Array.isArray(d.cards) ? d.cards : []).filter(c => c && c.term && c.desc && !seen.has(c.term)).slice(0, count);
+      if (!got.length) break;
+      cards.push(...got.map(c => newCard(c.term, c.desc, c.example, c.emoji, c.visuals || c.visual)));
+    }
+    if (!cards.length) throw new Error('카드를 만들지 못했습니다. 노트 내용을 늘리거나 다시 시도하세요.');
+    if (cards.length < n) toast(`요청한 ${n}장 중 ${cards.length}장만 만들었습니다. 노트 내용이 부족하면 줄어들 수 있습니다.`);
+    const deck = { id: uid(), name: String(title || topic || '새 덱').slice(0, 60), subject: course.course, historyId: null, sample: false, created: Date.now(), cards };
+    decks.push(deck);
+    selectDeck(deck.id);
+    toast(`✔ 카드 ${cards.length}장으로 새 덱 "${deck.name}"을 만들었습니다.`);
+    if (window.innerWidth < 1024) $('studyArea').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+  } catch (err) {
+    showErr(`✘ 카드 생성 실패 — ${err.message}`);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '카드 생성 →';
+  }
+}
+$('generateBtn').onclick = generateCards;
+
+// ---------- 덱 ----------
+function renderDeckSelect() {
+  $('deckSel').innerHTML = decks.map(d => `<option value="${esc(d.id)}" ${d.id === currentId ? 'selected' : ''}>${esc(d.name)} (${d.cards.length}장)</option>`).join('');
+}
+function selectDeck(id) {
+  currentId = id;
+  pos = 0;
+  buildView();
+  refreshAll();
+  enterCard(0);
+  saveData();
+}
+$('deckSel').onchange = () => selectDeck($('deckSel').value);
+
+function ask(title, value = '') {
+  return new Promise(resolve => {
+    const dlg = $('askDlg');
+    $('askTitle').textContent = title;
+    $('askInput').value = value;
+    dlg.returnValue = '';
+    dlg.onclose = () => resolve(dlg.returnValue === 'ok' ? $('askInput').value.trim() : null);
+    dlg.showModal();
+    $('askInput').select();
+  });
+}
+async function deckAction(act) {
+  const deck = cur();
+  if (act === 'new') {
+    const name = await ask('새 덱 이름 (과목·주차)', `${course.course || '새 덱'} ${decks.length + 1}주차`);
+    if (!name) return;
+    const d = { id: uid(), name, subject: course.course, historyId: null, sample: false, created: Date.now(), cards: [] };
+    decks.push(d);
+    selectDeck(d.id);
+    toast('새 덱을 만들었습니다. 일괄 등록이나 AI로 카드를 채우세요.');
+  } else if (act === 'rename') {
+    const name = await ask('덱 이름 바꾸기', deck.name);
+    if (!name) return;
+    deck.name = name;
+    refreshAll();
+    saveData();
+  } else if (act === 'delete') {
+    if (!(await confirmBox(`"${deck.name}" 덱(${deck.cards.length}장)을 삭제할까요? 학습 기록도 함께 지워집니다.`))) return;
+    decks = decks.filter(d => d !== deck);
+    if (!decks.length) decks.push(sampleDeck());
+    selectDeck(decks[0].id);
+    toast('덱을 삭제했습니다.');
+  } else if (act === 'import') openImport();
+  else if (act === 'edit') openEditor();
+  else if (act === 'history') saveToHistory();
+  else if (act === 'html') {
+    if (!deck.cards.length) return toast('카드가 없는 덱은 내려받을 수 없습니다.');
+    downloadStudyHtml(deckSource(deck));
+  } else if (act === 'reset') {
+    if (!(await confirmBox(`"${deck.name}"의 암기·재학습 기록을 모두 지우고 미학습으로 돌릴까요?`))) return;
+    deck.cards.forEach(c => { c.status = 'new'; c.again = 0; });
+    buildView();
+    render();
+    saveData();
+  }
+}
+document.querySelectorAll('[data-deck]').forEach(b => b.onclick = () => deckAction(b.dataset.deck));
+// 내려받기·HWPX 공용 원본: 덱(또는 히스토리)의 이름·과목·카드
+const deckSource = d => ({ id: d.historyId || d.id, title: d.name, subject: d.subject || course.course, tpl: tplOf(d), cards: d.cards.map(c => ({ term: c.term, desc: c.desc, example: c.example, emoji: c.emoji || '', visual: c.visual || null })) });
+
+// ---------- 학습 화면 ----------
+let view = [], pos = 0, flipped = false;
+const COVER = '__cover'; // 보기 목록 첫 자리: 표지 카드
+const viewCard = () => cur().cards.find(c => c.id === view[pos]);
+function shuffleArr(a) { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+// 보기 목록: 필터 → (약한 카드 우선 | 섞기). 분류해도 목록은 그대로 두고 다음 필터 변경 때 다시 만듦
+function buildView(keepId) {
+  let list = cur().cards.filter(c => prefs.filter === 'all' || c.status === prefs.filter);
+  if (prefs.shuffle) list = shuffleArr([...list]);
+  if (prefs.weak) list = [...list].sort((a, b) => b.again - a.again || (b.status === 'again') - (a.status === 'again'));
+  view = list.length ? [COVER, ...list.map(c => c.id)] : [];
+  const k = keepId ? view.indexOf(keepId) : -1;
+  pos = k >= 0 ? k : Math.min(pos, Math.max(view.length - 1, 0));
+  flipped = false;
+}
+function renderProgress() {
+  const cards = cur().cards, t = cards.length;
+  const k = cards.filter(c => c.status === 'known').length, a = cards.filter(c => c.status === 'again').length;
+  const pct = t ? Math.round(k / t * 100) : 0;
+  countTo(pct);
+  $('barK').style.width = t ? `${k / t * 100}%` : '0';
+  $('barA').style.width = t ? `${a / t * 100}%` : '0';
+  $('progBar').setAttribute('aria-valuenow', pct);
+  $('progBar').setAttribute('aria-valuetext', `진도율 ${pct}% · 암기 완료 ${k}장 · 재학습 ${a}장 · 미학습 ${t - k - a}장`);
+  $('cntK').textContent = k; $('cntA').textContent = a; $('cntN').textContent = t - k - a; $('cntT').textContent = t;
+  $('deckTitle').textContent = `${cur().name}${cur().sample ? ' — 등록된 카드가 없어 샘플 10장으로 작동 중' : ''}`;
+}
+function extraHTML(c) {
+  if (c.extraLoading) return `<div class="extra text-mute flex items-center gap-2"><span class="spinner"></span>AI가 예문과 관련 개념을 찾는 중…</div>`;
+  if (c.extraError) return `<div class="extra" style="color:#a8392f">✘ ${esc(c.extraError)}</div>`;
+  const x = c.extra;
+  if (!x) return '';
+  const ex = (x.examples || []).map(e => `<li>${esc(e.text)}${e.meaning ? `<br><span class="text-mute">${esc(e.meaning)}</span>` : ''}</li>`).join('');
+  const rel = (x.related || []).map(r => `<li><b>${esc(r.term)}</b> — ${esc(r.desc)}</li>`).join('');
+  return `<div class="extra space-y-2">
+    ${ex ? `<div><span class="lbl">✨ AI 예문</span><ul class="list-disc pl-5">${ex}</ul></div>` : ''}
+    ${rel ? `<div><span class="lbl">🔗 관련 개념</span><ul class="list-disc pl-5">${rel}</ul></div>` : ''}
+    ${x.tip ? `<p><span class="lbl">💡 TIP</span><br>${esc(x.tip)}</p>` : ''}</div>`;
+}
+function renderCard() {
+  applyTpl();
+  const deck = cur();
+  const empty = !deck.cards.length || !view.length;
+  $('scene').classList.toggle('hidden', empty);
+  $('emptyCard').classList.toggle('hidden', !empty);
+  const isCover = !empty && view[pos] === COVER;
+  ['knownBtn', 'againBtn'].forEach(id => $(id).disabled = empty || isCover);
+  $('prevBtn').disabled = empty || pos <= 0;
+  $('nextBtn').disabled = empty || pos >= view.length - 1;
+  $('posNow').textContent = empty ? 0 : isCover ? '표지' : pos;
+  $('posAll').textContent = Math.max(view.length - 1, 0);
+  $('presentPos').textContent = `${$('posNow').textContent} / ${$('posAll').textContent}`;
+  document.querySelectorAll('[data-pv=prev]').forEach(b => b.disabled = empty || pos <= 0);
+  document.querySelectorAll('[data-pv=next]').forEach(b => b.disabled = empty || pos >= view.length - 1);
+  if (empty) {
+    if (!deck.cards.length) {
+      $('emptyMsg').innerHTML = '이 덱에는 아직 카드가 없습니다.<br><span class="text-mute">“용어, 설명” 줄을 붙여넣어 한꺼번에 등록하거나 AI로 만들어 보세요.</span>';
+      $('emptyBtns').innerHTML = `<button type="button" class="pill pill-dark px-4 py-2 text-xs" data-empty="import">📥 일괄 등록</button>
+        <button type="button" class="pill px-4 py-2 text-xs" data-empty="sample">샘플 10장 넣기</button>
+        <button type="button" class="pill px-4 py-2 text-xs" data-empty="ai">✨ AI로 만들기</button>`;
+    } else {
+      $('emptyMsg').innerHTML = `<b>${{ new: '미학습', again: '재학습', known: '암기 완료' }[prefs.filter]}</b> 카드가 없습니다.${prefs.filter === 'again' ? '<br><span class="text-mute">헷갈리는 카드가 없다니, 잘하고 있어요!</span>' : ''}`;
+      $('emptyBtns').innerHTML = '<button type="button" class="pill pill-dark px-4 py-2 text-xs" data-empty="all">전체 카드 보기</button>';
+    }
+    return;
+  }
+  if (isCover) {
+    const o = { title: deck.name, subject: deck.subject || course.course, course: { ...course, course: course.course || deck.subject }, cards: deck.cards,
+      hint: '왼쪽 COURSE INFO에 대학·학과·교수·과목을 입력하면 여기에 표시됩니다.' };
+    $('front').className = 'face front cover';
+    $('back').className = 'face back cover';
+    $('front').innerHTML = coverHTML(o, 'front');
+    $('back').innerHTML = coverHTML(o, 'back');
+    setFlipped(flipped, true);
+    ['knownBtn', 'againBtn'].forEach(id => { $(id).classList.remove('on'); $(id).setAttribute('aria-pressed', false); });
+    fitNow();
+    return;
+  }
+  const c = viewCard(), st = STATUS[c.status], rev = prefs.reverse;
+  const badge = `<span class="st ${st.cls}"><span class="dot ${c.status === 'known' ? 'k' : c.status === 'again' ? 'a' : 'n'}"></span>${st.label}</span>${c.again ? `<span class="text-[11px] font-semibold" style="color:#a8392f">재학습 ${c.again}회</span>` : ''}`;
+  const tts = side => `<button type="button" class="pill icon-btn ml-auto" data-tts="${side}" aria-label="${side === 'front' ? '앞면' : '뒷면'} 소리 내어 읽기" title="읽기 (${{ 'zh-CN': '中文', 'en-US': 'EN', 'ko-KR': '한국어' }[prefs.lang]})">🔊</button>`;
+  $('front').className = `face front ${st.cls}`;
+  $('back').className = `face back ${st.cls}`;
+  $('front').innerHTML = `<div class="face-top">${badge}${tts('front')}</div>
+    <div class="face-body center"><div>${c.emoji ? `<span class="emo" aria-hidden="true">${esc(c.emoji)}</span>` : ''}${rev ? `<div class="desc-front">${descHTML(c.desc)}</div>` : `<p class="term-big">${hiText(c.term)}</p>`}</div></div>
+    <p class="face-hint">${rev ? '설명을 보고 용어를 떠올려 보세요 · ' : ''}카드를 누르거나 Space로 뒤집기</p>`;
+  $('back').innerHTML = `<div class="face-top"><span class="lbl">${rev ? 'TERM · 용어' : 'MEANING · 설명'}</span>${tts('back')}</div>
+    <div class="face-body back-body">
+      <div class="bk-main">${rev ? `<p class="term-mid">${c.emoji ? `<span class="emo-sm" aria-hidden="true">${esc(c.emoji)}</span>` : ''}${hiText(c.term)}</p><div class="mt-2 text-sm leading-7 text-[#5e5e64]">${descHTML(c.desc)}</div>`
+            : `<p class="term-sm text-[#5e5e64]">${c.emoji ? `<span class="emo-sm" aria-hidden="true">${esc(c.emoji)}</span>` : ''}${hiText(c.term)}</p><div class="desc-lg mt-1.5">${descHTML(c.desc)}</div>`}</div>
+      ${c.visual || c.example ? `<div class="bk-side">${visualHTML(c.visual)}${c.example ? `<div class="ex"><span class="lbl">EXAMPLE · 예문</span><p class="mt-0.5">${hiText(c.example)}</p></div>` : ''}</div>` : ''}
+      ${extraHTML(c) ? `<div class="bk-extra">${extraHTML(c)}</div>` : ''}
+    </div>
+    <div class="flex justify-center"><button type="button" class="pill px-4 py-1.5 text-xs" data-ai="explain" ${c.extraLoading ? 'disabled' : ''}>✨ AI 추가 설명${c.extra ? ' 다시 받기' : ''}</button></div>`;
+  setFlipped(flipped, true);
+  $('knownBtn').classList.toggle('on', c.status === 'known');
+  $('againBtn').classList.toggle('on', c.status === 'again');
+  $('knownBtn').setAttribute('aria-pressed', c.status === 'known');
+  $('againBtn').setAttribute('aria-pressed', c.status === 'again');
+  fitNow();
+}
+const fitNow = () => { if (!$('scene').classList.contains('hidden')) fitFaces([$('front'), $('back')], $('cardWrap').classList.contains('presenting') ? [1.6, 2.4] : 1); };
+let fitT;
+window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(fitNow, 120); });
+document.fonts?.ready.then(fitNow);
+function setFlipped(v, quiet) {
+  flipped = v;
+  $('flip').classList.toggle('flipped', v);
+  // 보이지 않는 면은 포커스·스크린리더에서 제외
+  $('front').inert = v; $('back').inert = !v;
+  $('front').setAttribute('aria-hidden', v); $('back').setAttribute('aria-hidden', !v);
+  if (!quiet) $('scene').setAttribute('aria-label', `플래시카드 ${v ? '뒷면' : '앞면'}: 클릭하거나 Space로 뒤집기`);
+}
+function render() { renderProgress(); renderCard(); }
+function refreshAll() { renderDeckSelect(); renderTplPicker(); render(); renderHistory(); renderSummaries(); }
+
+// ---------- 카드 모션 (움직임 줄이기 설정이면 페이드만) ----------
+const RM = matchMedia('(prefers-reduced-motion: reduce)');
+const SPRING = 'cubic-bezier(.2,1.3,.35,1)';
+const visFace = () => $(flipped ? 'back' : 'front');
+const done = a => a.finished.catch(() => {});
+function stopMotion() {
+  ['mover', 'front', 'back'].forEach(id => $(id).getAnimations().forEach(a => a.cancel()));
+  $('mover').style.transform = '';
+}
+// 진입: d = 1 오른쪽에서, -1 왼쪽에서, 0 아래에서 떠오름
+function enterCard(d = 0) {
+  if (!view.length) return;
+  stopMotion();
+  visFace().animate([{ opacity: 0 }, { opacity: 1 }], { duration: RM.matches ? 220 : 300, easing: 'ease-out' });
+  if (RM.matches) return;
+  $('mover').animate(d
+    ? [{ transform: `translateX(${d * 48}%) rotate(${d * 8}deg) scale(.9)` }, { transform: 'none' }]
+    : [{ transform: 'translateY(22px) scale(.93)' }, { transform: 'none' }], { duration: 560, easing: SPRING });
+}
+// 퇴장: 암기 완료는 위로 튀어 오른쪽으로, 재학습은 흔들린 뒤 왼쪽으로. 걸리는 시간(ms)을 돌려줌
+function exitCard(kind) {
+  const face = visFace();
+  if (RM.matches) { face.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }); return 240; }
+  const again = kind === 'again', dur = again ? 560 : 440;
+  $('mover').animate(again
+    ? [{ transform: 'none' }, { transform: 'translateX(-12px) rotate(-2deg)', offset: .12 }, { transform: 'translateX(12px) rotate(2deg)', offset: .24 },
+       { transform: 'translateX(-7px) rotate(-1deg)', offset: .36 }, { transform: 'translateX(0)', offset: .46 }, { transform: 'translate(-62%, 10%) rotate(-11deg) scale(.88)' }]
+    : [{ transform: 'none' }, { transform: 'translateY(-14px) scale(1.04)', offset: .28 }, { transform: 'translate(62%, -16%) rotate(13deg) scale(.88)' }],
+    { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
+  face.animate([{ opacity: 1 }, { opacity: 1, offset: .6 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
+  return dur;
+}
+// 도장 + 암기 완료는 초록 불꽃, 재학습은 빨간 파문
+function celebrate(kind) {
+  const fx = $('fx'), known = kind === 'known';
+  const st = document.createElement('div');
+  st.className = `stamp ${known ? 'k' : 'a'}`;
+  st.textContent = known ? '✓ 암기 완료' : '↻ 재학습';
+  fx.appendChild(st);
+  const base = 'translate(-50%,-50%) rotate(-10deg)';
+  done(st.animate(RM.matches
+    ? [{ opacity: 0 }, { opacity: 1, offset: .25 }, { opacity: 1, offset: .7 }, { opacity: 0 }]
+    : [{ opacity: 0, transform: 'translate(-50%,-50%) rotate(-18deg) scale(1.9)' }, { opacity: 1, transform: `${base} scale(.94)`, offset: .24 },
+       { opacity: 1, transform: `${base} scale(1)`, offset: .34 }, { opacity: 1, transform: `${base} scale(1)`, offset: .74 }, { opacity: 0, transform: `${base} scale(1.05)` }],
+    { duration: 720, easing: 'cubic-bezier(.2,.9,.3,1)' })).then(() => st.remove());
+  if (RM.matches) return;
+  if (!known) {
+    const r = document.createElement('i');
+    r.className = 'ripple';
+    fx.appendChild(r);
+    done(r.animate([{ transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 }],
+      { duration: 620, easing: 'cubic-bezier(.1,.7,.3,1)' })).then(() => r.remove());
+    return;
+  }
+  for (let i = 0; i < 18; i++) {
+    const p = document.createElement('i');
+    p.className = 'spark';
+    fx.appendChild(p);
+    const a = Math.random() * Math.PI * 2, dist = 80 + Math.random() * 120, sz = .6 + Math.random() * .9;
+    done(p.animate([{ transform: `translate(-50%,-50%) scale(${sz})`, opacity: 1 },
+      { transform: `translate(calc(-50% + ${Math.cos(a) * dist}px), calc(-50% + ${Math.sin(a) * dist}px)) scale(0)`, opacity: 0 }],
+      { duration: 650 + Math.random() * 350, easing: 'cubic-bezier(.1,.8,.3,1)' })).then(() => p.remove());
+  }
+}
+// 진도율 숫자 카운트업
+let pctShown = 0, pctRaf = 0;
+function countTo(n) {
+  const el = $('progPct'), from = pctShown, t0 = performance.now();
+  pctShown = n;
+  cancelAnimationFrame(pctRaf);
+  if (RM.matches || from === n) { el.textContent = n; return; }
+  const step = t => {
+    const k = Math.min(1, Math.max(0, (t - t0) / 600));
+    el.textContent = Math.round(from + (n - from) * (1 - Math.pow(1 - k, 3)));
+    if (k < 1) pctRaf = requestAnimationFrame(step);
+  };
+  pctRaf = requestAnimationFrame(step);
+}
+
+const flip = () => {
+  if (!view.length) return;
+  setFlipped(!flipped);
+  if (!RM.matches) $('mover').animate([{ transform: 'none' }, { transform: 'translateY(-12px) scale(1.04)', offset: .4 }, { transform: 'none' }], { duration: 780, easing: 'ease-in-out' });
+};
+function go(d) {
+  clearTimeout(advT); advT = null;
+  const n = pos + d;
+  if (n < 0 || n >= view.length) {
+    // 끝에 닿으면 살짝 튕김
+    if (!RM.matches && view.length) $('mover').animate([{ transform: 'none' }, { transform: `translateX(${-d * 14}px)`, offset: .3 }, { transform: `translateX(${d * 6}px)`, offset: .65 }, { transform: 'none' }], { duration: 360 });
+    return toast(d > 0 ? '이 목록의 마지막 카드입니다.' : '첫 번째 카드입니다.');
+  }
+  pos = n;
+  flipped = false;
+  window.speechSynthesis?.cancel();
+  renderCard();
+  enterCard(d);
+}
+// 분류 뒤 잠깐 보여 주고 다음 카드로. 그 사이 또 분류하면 바로 넘긴 뒤 새 카드에 적용
+let advT = null;
+function advance() {
+  advT = null;
+  if (pos < view.length - 1) go(1);
+  else toast(`이 목록을 끝까지 봤습니다 · 진도율 ${pctShown}%${cur().cards.some(x => x.status === 'again') ? ' · "재학습만"으로 다시 복습해 보세요' : ''}`);
+}
+function classify(status) {
+  if (advT) { clearTimeout(advT); advance(); }
+  const c = viewCard();
+  if (!c) { if (view[pos] === COVER) go(1); return; } // 표지에서 1·2를 누르면 첫 카드로
+  c.status = status;
+  if (status === 'again') c.again += 1;
+  c.lastAt = Date.now();
+  if (cur().sample) cur().sample = false; // 샘플이라도 학습 기록은 남김
+  saveData();
+  render();
+  celebrate(status);
+  let wait = 420;
+  if (pos < view.length - 1) wait = exitCard(status);
+  else if (!RM.matches) $('mover').animate([{ transform: 'none' }, { transform: 'scale(1.05)', offset: .3 }, { transform: 'none' }], { duration: 480, easing: SPRING });
+  advT = setTimeout(advance, wait);
+}
+$('prevBtn').onclick = () => go(-1);
+$('nextBtn').onclick = () => go(1);
+$('knownBtn').onclick = () => classify('known');
+$('againBtn').onclick = () => classify('again');
+
+// 카드 클릭 · 스와이프
+// 휴대폰: 카드를 손가락으로 끌면 따라오고, 충분히 밀면 날아가며 넘어감
+let sx = 0, sy = 0, swiped = false, dragging = false;
+$('scene').addEventListener('touchstart', e => { const t = e.changedTouches[0]; sx = t.clientX; sy = t.clientY; swiped = false; dragging = false; }, { passive: true });
+$('scene').addEventListener('touchmove', e => {
+  const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+  if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) { dragging = true; stopMotion(); }
+  if (dragging && !RM.matches) $('mover').style.transform = `translateX(${dx}px) rotate(${dx / 22}deg)`;
+}, { passive: true });
+$('scene').addEventListener('touchend', e => {
+  const t = e.changedTouches[0], dx = t.clientX - sx, dy = t.clientY - sy;
+  const from = $('mover').style.transform;
+  if (dragging) swiped = true;
+  dragging = false;
+  if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+    swiped = true;
+    const d = dx < 0 ? 1 : -1;
+    $('mover').style.transform = '';
+    if (pos + d < 0 || pos + d >= view.length || RM.matches) return go(d);
+    done($('mover').animate([{ transform: from || 'none' }, { transform: `translateX(${-d * 120}%) rotate(${-d * 16}deg)` }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => go(d));
+  } else if (from) {
+    $('mover').style.transform = '';
+    $('mover').animate([{ transform: from }, { transform: 'none' }], { duration: 480, easing: SPRING });
+  }
+}, { passive: true });
+// 마우스: 카드가 포인터 쪽으로 살짝 기울고 광택이 따라옴
+$('scene').addEventListener('pointermove', e => {
+  if (e.pointerType !== 'mouse' || RM.matches) return;
+  const r = $('scene').getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+  $('scene').classList.add('tilting');
+  $('tilt').style.transform = `rotateX(${(.5 - y) * 9}deg) rotateY(${(x - .5) * 11}deg)`;
+  $('scene').style.setProperty('--mx', `${x * 100}%`);
+  $('scene').style.setProperty('--my', `${y * 100}%`);
+  $('scene').style.setProperty('--sheen', '.55');
+});
+$('scene').addEventListener('pointerleave', () => {
+  $('scene').classList.remove('tilting');
+  $('tilt').style.transform = '';
+  $('scene').style.setProperty('--sheen', '0');
+});
+$('scene').addEventListener('click', e => {
+  if (swiped) { swiped = false; return; }
+  const b = e.target.closest('button');
+  if (b?.dataset.tts) return speakCard(b.dataset.tts);
+  if (b?.dataset.ai) return aiExplain();
+  if (b || window.getSelection()?.toString()) return;
+  flip();
+});
+$('emptyCard').addEventListener('click', e => {
+  const a = e.target.closest('[data-empty]')?.dataset.empty;
+  if (a === 'import') openImport();
+  else if (a === 'sample') { cur().cards.push(...sampleCards()); buildView(); refreshAll(); saveData(); }
+  else if (a === 'ai') { showTab('note'); $('genArea').scrollIntoView(); $('lecture').focus(); }
+  else if (a === 'all') setFilter('all');
+});
+
+// 키보드 단축키: 입력칸·모달 밖에서만
+document.addEventListener('keydown', e => {
+  if (e.ctrlKey || e.metaKey || e.altKey || document.querySelector('dialog[open]')) return;
+  const t = e.target;
+  if (t.closest?.('input, textarea, select, [contenteditable="true"]')) return;
+  // 학습 영역 밖의 버튼에 포커스가 있으면 Space는 그 버튼이 처리
+  if (e.key === ' ' && t !== document.body && !$('studyArea').contains(t)) return;
+  const k = e.key;
+  if (k === ' ' || k === 'Spacebar') { e.preventDefault(); flip(); }
+  else if (k === 'ArrowLeft') { e.preventDefault(); go(-1); }
+  else if (k === 'ArrowRight') { e.preventDefault(); go(1); }
+  else if (k === '1') classify('known');
+  else if (k === '2') classify('again');
+  else if (k === 'f' || k === 'F') setPresent(!presenting);
+  else if (k === 'Escape' && presenting) setPresent(false);
+});
+
+// ---------- 전체보기 (강의용 전체 화면) ----------
+let presenting = false;
+function setPresent(on) {
+  presenting = on;
+  const w = $('cardWrap');
+  w.classList.toggle('presenting', on);
+  document.documentElement.classList.toggle('presenting-lock', on);
+  $('presentBtn').setAttribute('aria-pressed', on);
+  // 브라우저 전체 화면은 되는 곳에서만 (안 되면 창 안에서 화면 가득)
+  if (on && w.requestFullscreen && !document.fullscreenElement) w.requestFullscreen().catch(() => {});
+  if (!on && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  fitNow();
+  if (on) { enterCard(0); $('scene').focus({ preventScroll: true }); }
+  else $('presentBtn').focus({ preventScroll: true });
+}
+document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && presenting) setPresent(false); });
+$('presentBtn').onclick = () => setPresent(true);
+$('presentBar').addEventListener('click', e => {
+  const a = e.target.closest('[data-pv]')?.dataset.pv;
+  if (a === 'prev') go(-1);
+  else if (a === 'next') go(1);
+  else if (a === 'flip') flip();
+  else if (a === 'exit') setPresent(false);
+});
+
+// 복습 설정
+function setFilter(f) {
+  prefs.filter = f;
+  document.querySelector(`input[name=filter][value=${f}]`).checked = true;
+  pos = 0;
+  buildView();
+  renderCard();
+  enterCard(0);
+  saveSettings();
+}
+function applyPrefsUI() {
+  document.querySelector(`input[name=filter][value=${prefs.filter}]`).checked = true;
+  document.querySelector(`input[name=lang][value="${prefs.lang}"]`).checked = true;
+  $('optShuffle').checked = prefs.shuffle;
+  $('optReverse').checked = prefs.reverse;
+  $('optWeak').checked = prefs.weak;
+  setGenCount(prefs.genCount);
+  setDescLen(prefs.descLen);
+  Object.keys(collapsed).forEach(n => setCollapsed(n, collapsed[n]));
+}
+document.querySelectorAll('input[name=filter]').forEach(r => r.addEventListener('change', () => setFilter(r.value)));
+document.querySelectorAll('input[name=lang]').forEach(r => r.addEventListener('change', () => { prefs.lang = r.value; renderCard(); saveSettings(); }));
+$('optShuffle').onchange = () => { prefs.shuffle = $('optShuffle').checked; pos = 0; buildView(); renderCard(); enterCard(prefs.shuffle ? 1 : -1); saveSettings(); toast(prefs.shuffle ? '카드 순서를 섞었습니다.' : '원래 순서로 돌아왔습니다.'); };
+$('optReverse').onchange = () => { prefs.reverse = $('optReverse').checked; flipped = false; renderCard(); enterCard(0); saveSettings(); };
+$('optWeak').onchange = () => { prefs.weak = $('optWeak').checked; pos = 0; buildView(); renderCard(); enterCard(0); saveSettings(); if (prefs.weak) toast('재학습 횟수가 많은 카드부터 보여 줍니다.'); };
+
+// ---------- TTS: 중국어 · 영어 · 한국어 ----------
+// 고른 언어에 해당하는 글자만 골라 읽음 (예: 中文이면 "성조 (声调)"에서 声调만)
+function speakText(text, lang) {
+  if (!('speechSynthesis' in window)) return toast('이 브라우저는 음성 읽기를 지원하지 않습니다.');
+  let say = text;
+  if (lang === 'zh-CN') { const m = text.match(/[㐀-鿿豈-﫿，。！？、；：]+/g); if (m) say = m.join('，'); }
+  else if (lang === 'en-US') { const m = text.match(/[A-Za-z][A-Za-z0-9'’\- ]*[A-Za-z0-9]/g); if (m) say = m.join(', '); }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(say);
+  u.lang = lang;
+  const v = speechSynthesis.getVoices().find(x => x.lang.replace('_', '-') === lang) || speechSynthesis.getVoices().find(x => x.lang.startsWith(lang.slice(0, 2)));
+  if (v) u.voice = v;
+  else if (speechSynthesis.getVoices().length) toast(`이 기기에 ${{ 'zh-CN': '중국어', 'en-US': '영어', 'ko-KR': '한국어' }[lang]} 음성이 없어 기본 음성으로 읽습니다.`);
+  u.rate = lang === 'ko-KR' ? 1 : .9;
+  speechSynthesis.speak(u);
+}
+function speakCard(side) {
+  const c = viewCard();
+  if (!c) return;
+  const frontText = prefs.reverse ? c.desc : c.term, backText = prefs.reverse ? c.term : c.desc;
+  speakText((side === 'front' ? frontText : backText).replace(/^\s*[-•·▪∙]\s*/gm, '').replace(/\*\*/g, ''), prefs.lang);
+}
+window.speechSynthesis?.getVoices();
+
+// ---------- AI 추가 설명 ----------
+async function aiExplain() {
+  const c = viewCard();
+  if (!c) return;
+  if (!aiReady()) { c.extraError = needKeyMsg(); renderCard(); delete c.extraError; return; }
+  c.extraLoading = true;
+  renderCard();
+  try {
+    const x = await askAI(`대학 전공 학습용 플래시카드의 보충 설명을 만드세요. 덱 주제: ${cur().name}
+용어: ${c.term}
+설명: ${c.desc}
+- examples: 용어가 쓰인 예문이나 사례 2개. 용어가 중국어·영어 등 외국어 표현이면 text에 원문(중국어는 병음 포함), meaning에 한국어 뜻
+- related: 함께 알아 두면 좋은 관련 개념 3개, desc는 개조식 한 줄(~함·~임 또는 명사로 끝냄)
+- tip: 헷갈리기 쉬운 점이나 암기 요령을 개조식 한 줄로(~함·~임 또는 명사로 끝냄)
+다른 설명 없이 JSON만 출력하세요:
+{"examples":[{"text":"","meaning":""}],"related":[{"term":"","desc":""}],"tip":""}`, 1500);
+    c.extra = {
+      examples: (x.examples || []).filter(e => e?.text).slice(0, 3).map(e => ({ text: String(e.text), meaning: String(e.meaning || '') })),
+      related: (x.related || []).filter(r => r?.term).slice(0, 4).map(r => ({ term: String(r.term), desc: String(r.desc || '') })),
+      tip: String(x.tip || '')
+    };
+    saveData();
+  } catch (err) {
+    c.extraError = `AI 추가 설명 실패 — ${err.message}`;
+  }
+  c.extraLoading = false;
+  if (viewCard() === c) renderCard();
+  delete c.extraError;
+}
+
+// ---------- 일괄 등록 (CSV · 텍스트) ----------
+// 한 줄 = 한 장. 탭 → 쉼표 순으로 나누고, 따옴표로 감싼 칸("a, b")은 그대로
+function parseLine(line) {
+  if (line.includes('\t')) return line.split('\t').map(s => s.trim());
+  const out = [];
+  let cell = '', q = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (q) { if (ch === '"' && line[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+    else if (ch === '"' && !cell.trim()) q = true;
+    else if (ch === ',' || ch === '，') { out.push(cell.trim()); cell = ''; }
+    else cell += ch;
+  }
+  out.push(cell.trim());
+  // 따옴표 없이 쉼표가 여러 개면: 첫 칸 = 용어, 나머지 = 설명 (세 칸이고 마지막이 짧은 예문이면 예문)
+  if (out.length > 3) return [out[0], out.slice(1).join(', ')];
+  return out;
+}
+function parseCards(text) {
+  return text.replace(/^﻿/, '').split(/\r?\n/).map(l => l.trim()).filter(Boolean)
+    .map(parseLine).filter(c => c[0] && c[1] && !/^(용어|term)$/i.test(c[0]))
+    .map(([t, d, e]) => newCard(t, d, e));
+}
+function openImport() {
+  $('importText').value = '';
+  $('importPreview').textContent = '0장 인식';
+  $('importDlg').showModal();
+  $('importText').focus();
+}
+$('importText').addEventListener('input', () => {
+  const n = parseCards($('importText').value).length;
+  $('importPreview').textContent = `${n}장 인식${n ? ` · 첫 카드: ${parseCards($('importText').value)[0].term}` : ''}`;
+});
+const readFileInto = async f => { $('importText').value = await f.text(); $('importText').dispatchEvent(new Event('input')); };
+$('importFile').onchange = e => { if (e.target.files[0]) readFileInto(e.target.files[0]); e.target.value = ''; };
+$('importText').addEventListener('drop', e => { if (e.dataTransfer.files[0]) readFileInto(e.dataTransfer.files[0]); });
+$('importDo').onclick = async () => {
+  const cards = parseCards($('importText').value);
+  if (!cards.length) return $('importPreview').textContent = '⚠ 인식된 카드가 없습니다. "용어, 설명" 형식인지 확인하세요.';
+  const mode = document.querySelector('input[name=importMode]:checked').value;
+  $('importDlg').close();
+  if (mode === 'new') {
+    const name = await ask('새 덱 이름', `${course.course || '새 덱'} (${cards.length}장)`) || '새 덱';
+    const d = { id: uid(), name, subject: course.course, historyId: null, sample: false, created: Date.now(), cards };
+    decks.push(d);
+    selectDeck(d.id);
+  } else {
+    const deck = cur();
+    if (mode === 'replace' && deck.cards.length && !(await confirmBox(`"${deck.name}"의 카드 ${deck.cards.length}장을 지우고 ${cards.length}장으로 바꿀까요?`))) return;
+    deck.cards = mode === 'replace' ? cards : [...deck.cards, ...cards];
+    deck.sample = false;
+    buildView();
+    refreshAll();
+    saveData();
+  }
+  toast(`✔ 카드 ${cards.length}장을 등록했습니다.`);
+};
+
+// ---------- 카드 편집기 ----------
+let draft = [];
+function openEditor() {
+  draft = cur().cards.map(c => ({ ...c }));
+  renderEditor();
+  $('editDlg').showModal();
+}
+function renderEditor(focusIdx) {
+  $('editCount').textContent = `${cur().name} · ${draft.length}장`;
+  $('editList').innerHTML = draft.length ? draft.map((c, i) => `
+    <div class="ed-row" data-i="${i}">
+      <div class="flex items-center gap-1.5 mb-2">
+        <span class="font-disp text-sm font-semibold w-8">${pad(i + 1)}</span>
+        <span class="st ${STATUS[c.status].cls} !text-[10px] !py-0.5">${STATUS[c.status].label}${c.again ? ` · 재학습 ${c.again}` : ''}</span>
+        <span class="ml-auto flex gap-1">
+          <button type="button" class="pill icon-btn" data-ed="ai" title="AI로 이 카드만 다시 만들기" aria-label="${i + 1}번 카드 AI로 다시 만들기" ${c.busy ? 'disabled' : ''}>${c.busy ? '<span class="spinner"></span>' : '✨'}</button>
+          <button type="button" class="pill icon-btn" data-ed="up" aria-label="${i + 1}번 카드 위로" ${i ? '' : 'disabled'}>▲</button>
+          <button type="button" class="pill icon-btn" data-ed="down" aria-label="${i + 1}번 카드 아래로" ${i < draft.length - 1 ? '' : 'disabled'}>▼</button>
+          <button type="button" class="pill icon-btn" data-ed="del" aria-label="${i + 1}번 카드 삭제">✕</button>
+        </span>
+      </div>
+      <div class="grid gap-2 sm:grid-cols-[minmax(0,2fr)_minmax(0,3fr)]">
+        <div class="grid grid-cols-[4.2rem_minmax(0,1fr)] gap-2 min-w-0">
+          <label class="block min-w-0"><span class="lbl">EMOJI</span><input data-f="emoji" class="field mt-1 text-center !px-1 text-lg" value="${esc(c.emoji || '')}" maxlength="8" aria-label="${i + 1}번 카드 이모지"></label>
+          <label class="block min-w-0"><span class="lbl">TERM · 용어</span><input data-f="term" class="field mt-1 font-semibold" value="${esc(c.term)}"></label>
+        </div>
+        <label class="block min-w-0"><span class="lbl">MEANING · 설명</span><textarea data-f="desc" rows="4" class="field mt-1 resize-y" placeholder="- 항목마다 줄을 바꿔 쓰세요">${esc(c.desc)}</textarea></label>
+        <label class="block min-w-0 sm:col-span-2"><span class="lbl">EXAMPLE · 예문</span><input data-f="example" class="field mt-1" value="${esc(c.example)}" placeholder="(선택)"></label>
+      </div>
+      <div class="mt-2 flex flex-wrap items-center gap-2 text-[11px] text-mute">
+        ${(() => { const vs = [].concat(c.visual || []).filter(v => v && v.type); return vs.length ? vs.map(v => `<span class="st !text-[10.5px]">${{ bars: '📊 막대 차트', pie: '🍩 도넛 차트', steps: '🪜 단계 흐름', compare: '⚖️ 비교', timeline: '🕰️ 연표', icons: '🧭 아이콘', table: '🧾 도표', flow: '🔀 흐름도', cycle: '🔄 순환도', tree: '🌳 구조도', venn: '⭕ 벤 다이어그램' }[v.type] || '시각 자료'} · ${esc(v.title || '')}</span>`).join('') + `<button type="button" class="pill px-2.5 py-0.5 text-[11px]" data-ed="novis">시각 자료 빼기</button>` : '<span>시각 자료 없음 · ✨로 AI가 만들 수 있습니다</span>'; })()}
+      </div>
+    </div>`).join('') : '<p class="text-sm text-mute text-center py-10">카드가 없습니다. “＋ 카드 추가”를 누르세요.</p>';
+  if (focusIdx != null) $('editList').querySelector(`[data-i="${focusIdx}"] [data-f=term]`)?.focus();
+}
+$('editList').addEventListener('input', e => {
+  const f = e.target.dataset.f, row = e.target.closest('[data-i]');
+  if (f && row) draft[row.dataset.i][f] = e.target.value;
+});
+$('editList').addEventListener('click', async e => {
+  const b = e.target.closest('[data-ed]');
+  if (!b) return;
+  const i = Number(b.closest('[data-i]').dataset.i), act = b.dataset.ed;
+  if (act === 'up' || act === 'down') {
+    const j = act === 'up' ? i - 1 : i + 1;
+    [draft[i], draft[j]] = [draft[j], draft[i]];
+    renderEditor();
+    $('editList').querySelector(`[data-i="${j}"] [data-ed="${act}"]:not(:disabled)`)?.focus();
+  } else if (act === 'novis') {
+    draft[i].visual = null;
+    renderEditor();
+  } else if (act === 'del') {
+    draft.splice(i, 1);
+    renderEditor();
+  } else if (act === 'ai') regenCard(i);
+});
+// 편집기 입력칸에서 Enter를 눌러도 모달이 닫히지 않게
+$('editList').addEventListener('keydown', e => { if (e.key === 'Enter' && e.target.tagName === 'INPUT') e.preventDefault(); });
+$('askInput').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); $('askDlg').close('ok'); } });
+$('editAdd').onclick = () => { draft.push(newCard('', '')); renderEditor(draft.length - 1); };
+$('editSave').onclick = () => {
+  const deck = cur();
+  const cleaned = draft.filter(c => c.term.trim() && c.desc.trim());
+  const dropped = draft.length - cleaned.length;
+  const old = new Map(deck.cards.map(c => [c.id, c]));
+  deck.cards = cleaned.map(c => {
+    const o = old.get(c.id);
+    const changed = o && (o.term !== c.term.trim() || o.desc !== c.desc.trim());
+    return { ...c, term: c.term.trim(), desc: c.desc.trim(), example: c.example.trim(), busy: undefined, extra: changed ? null : c.extra };
+  });
+  deck.sample = false;
+  // 히스토리와 연결된 덱이면 히스토리도 함께 고침
+  const h = history.find(x => x.id === deck.historyId);
+  if (h) { h.cards = deckSource(deck).cards; h.topic = deck.name; h.ts = Date.now(); }
+  $('editDlg').close();
+  buildView(view[pos]);
+  refreshAll();
+  saveData();
+  toast(`✔ 카드 ${deck.cards.length}장을 저장했습니다.${dropped ? ` (용어·설명이 빈 ${dropped}장은 뺐습니다)` : ''}${h ? ' 히스토리에도 반영했습니다.' : ''}`);
+};
+// AI로 한 장만 다시 만들기: 용어는 유지하고 설명·예문을 새로
+async function regenCard(i) {
+  const c = draft[i];
+  if (!aiReady()) return toast(needKeyMsg());
+  if (!c.term.trim()) return toast('용어를 먼저 입력하세요. AI가 그 용어로 설명과 예문을 만듭니다.');
+  c.busy = true;
+  renderEditor();
+  try {
+    const others = draft.filter(x => x !== c).map(x => x.term).slice(0, 40).join(', ');
+    const x = await askAI(`대학 전공 암기용 플래시카드 한 장을 더 좋게 다시 만드세요. 덱 주제: ${cur().name}
+같은 덱의 다른 용어(내용이 겹치지 않게): ${others || '없음'}
+현재 카드 — 용어: ${c.term} / 설명: ${c.desc || '(없음)'} / 예문: ${c.example || '(없음)'}
+- term: 같은 용어 (표기만 다듬을 수 있음, 원어 병기 가능)
+- desc: 한국어 설명. ${BULLET_RULE}. 분량: ${DESC_LEN[prefs.descLen].rule}. 정확하게
+- example: 짧은 예문·사례 1개 (외국어 용어면 원문과 뜻)
+- emoji: 개념을 떠올리게 하는 이모지 1개
+${VIS_GUIDE} 형식:
+${VIS_SHAPES}
+다른 설명 없이 JSON만 출력하세요: {"term":"","desc":"","example":"","emoji":"","visuals":[{}]}`, 1400 + DESC_LEN[prefs.descLen].tokens);
+    if (!x.desc) throw new Error('설명을 받지 못했습니다.');
+    Object.assign(c, { term: String(x.term || c.term), desc: String(x.desc), example: String(x.example || ''), emoji: String(x.emoji || c.emoji || '').slice(0, 8), visual: (x.visuals || x.visual) && typeof (x.visuals || x.visual) === 'object' ? (x.visuals || x.visual) : c.visual });
+    toast(`✔ ${i + 1}번 카드를 다시 만들었습니다. 저장을 눌러야 반영됩니다.`);
+  } catch (err) {
+    toast(`✘ 다시 만들기 실패 — ${err.message}`);
+  }
+  c.busy = false;
+  if ($('editDlg').open) renderEditor();
+}
+
+// ---------- 덱 히스토리 ----------
+function saveToHistory() {
+  const deck = cur();
+  if (!deck.cards.length) return toast('카드가 없는 덱은 저장할 수 없습니다.');
+  const src = deckSource(deck);
+  let h = history.find(x => x.id === deck.historyId);
+  if (h) Object.assign(h, { ts: Date.now(), subject: src.subject, topic: deck.name, tpl: src.tpl, cards: src.cards });
+  else {
+    h = { id: uid(), ts: Date.now(), subject: src.subject, topic: deck.name, tpl: src.tpl, cards: src.cards };
+    history.unshift(h);
+    deck.historyId = h.id;
+  }
+  history.sort((a, b) => b.ts - a.ts);
+  renderHistory();
+  saveData();
+  toast(`🗂 "${deck.name}"을 히스토리에 저장했습니다.`);
+}
+function renderHistory() {
+  $('histEmpty').classList.toggle('hidden', history.length > 0);
+  $('histCount').textContent = history.length ? `${history.length}건` : '';
+  const ib = (act, id, label, icon, text) => `<td class="!px-0 text-center"><button type="button" class="pill icon-btn !w-[1.85rem] !h-[1.85rem] sm:!w-auto sm:!h-auto sm:px-2 sm:py-1 text-[11px]" data-h="${act}" data-id="${esc(id)}" aria-label="${label}" title="${label}"><span class="sm:hidden" aria-hidden="true">${icon}</span><span class="hidden sm:inline">${text}</span></button></td>`;
+  $('histBody').innerHTML = history.map(h => {
+    const d = new Date(h.ts);
+    const name = `${h.subject ? `${h.subject} · ` : ''}${h.topic}`;
+    return `<tr>
+      <td class="font-disp text-[11px] leading-tight"><span class="block font-semibold">${pad(d.getMonth() + 1)}.${pad(d.getDate())}</span><span class="text-mute">${fmtTime(h.ts)}</span></td>
+      <td class="min-w-0"><span class="block font-semibold leading-snug line-clamp-2">${esc(h.topic)}</span>${h.subject ? `<span class="block text-[10.5px] text-mute truncate">${esc(h.subject)}</span>` : ''}</td>
+      <td class="text-center font-disp font-semibold">${h.cards.length}</td>
+      ${ib('open', h.id, `${name} 열기`, '↗', '열기')}${ib('html', h.id, `${name} 학습용 HTML 내려받기`, '↓', 'HTML')}${ib('edit', h.id, `${name} 카드 수정`, '✎', '수정')}${ib('del', h.id, `${name} 삭제`, '✕', '삭제')}
+    </tr>`;
+  }).join('');
+}
+function openHistory(h) {
+  let d = decks.find(x => x.historyId === h.id);
+  if (!d) {
+    d = { id: uid(), name: h.topic, subject: h.subject, historyId: h.id, sample: false, tpl: tplOf(h), created: Date.now(), cards: h.cards.map(c => newCard(c.term, c.desc, c.example, c.emoji, c.visual)) };
+    decks.push(d);
+  }
+  selectDeck(d.id);
+  return d;
+}
+$('histBody').addEventListener('click', async e => {
+  const b = e.target.closest('[data-h]');
+  if (!b) return;
+  const h = history.find(x => x.id === b.dataset.id);
+  if (!h) return;
+  if (b.dataset.h === 'open') { openHistory(h); toast(`"${h.topic}" 덱을 열었습니다.`); if (window.innerWidth < 1024) $('studyArea').scrollIntoView(); }
+  else if (b.dataset.h === 'html') downloadStudyHtml({ id: h.id, title: h.topic, subject: h.subject, tpl: tplOf(h), cards: h.cards });
+  else if (b.dataset.h === 'edit') { openHistory(h); openEditor(); }
+  else if (b.dataset.h === 'del') {
+    if (!(await confirmBox(`히스토리 "${h.topic}"(${h.cards.length}장)을 삭제할까요? 열어 둔 덱은 그대로 남습니다.`))) return;
+    history = history.filter(x => x !== h);
+    decks.forEach(d => { if (d.historyId === h.id) d.historyId = null; });
+    renderHistory();
+    saveData();
+  }
+});
+
+// ---------- 학습용 HTML: 파일만 열면 학생 정보 입력 → 학습 → 결과 JSON 제출 ----------
+const STUDY_CSS = VIS_CSS + TPL_CSS + COVER_CSS + `
+:root{--bg:#ececeb;--face:#f1f1f0;--sunk:#e4e4e3;--ink:#1d1d1f;--mute:#77777d;--accent:47,123,246;--ok:63,156,90;--ng:208,84,74;
+--raise:0 10px 18px -8px rgba(0,0,0,.2),0 3px 0 -1px rgba(0,0,0,.06),inset 0 1px 0 #fff,inset 0 -2px 0 rgba(0,0,0,.05);
+--raise-lg:0 22px 34px -14px rgba(0,0,0,.24),0 4px 0 -1px rgba(0,0,0,.06),inset 0 1.5px 0 #fff,inset 0 -2px 0 rgba(0,0,0,.05);
+--raise-sm:0 6px 10px -6px rgba(0,0,0,.22),0 2px 0 -1px rgba(0,0,0,.06),inset 0 1px 0 #fff,inset 0 -1.5px 0 rgba(0,0,0,.05);
+--press:inset 0 2px 5px rgba(0,0,0,.14),inset 0 -1px 0 rgba(255,255,255,.9);--focus:0 0 0 2px var(--bg),0 0 0 4px rgba(var(--accent),1)}
+*{box-sizing:border-box}html,body{overflow-x:hidden}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,"Noto Sans KR","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;font-size:15px;line-height:1.55}
+.wrap{max-width:760px;margin:0 auto;padding:0 16px}
+.hd{background:var(--face);box-shadow:var(--raise)}.hd-in{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px}
+.series{margin:0;font-size:10px;font-weight:600;color:var(--mute)}.logo{margin:0;font-size:22px;font-weight:500;letter-spacing:.3em;display:flex;align-items:baseline;gap:8px}
+.ver{font-size:10px;letter-spacing:0;font-weight:600;color:var(--mute);padding:2px 8px;border-radius:999px;background:var(--face);box-shadow:var(--raise-sm)}
+.ttl{margin:0;font-size:14px;font-weight:800;text-align:right}
+main{padding-top:28px;padding-bottom:28px}
+.panel{background:var(--face);border:1px solid rgba(0,0,0,.04);box-shadow:var(--raise);border-radius:28px;padding:22px;margin-bottom:20px}
+.course{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:0 0 14px}
+.course div{padding:8px 10px;border-radius:14px;background:var(--sunk);box-shadow:var(--press);min-width:0}.course dt{font-size:10px;font-weight:700;color:var(--mute)}.course dd{margin:0;font-size:13px;font-weight:600;overflow-wrap:anywhere}
+h1{font-size:24px;margin:0 0 4px;line-height:1.3;word-break:keep-all}.sub{margin:0;color:var(--mute);font-size:13px}
+.lbl{font-size:10px;font-weight:700;letter-spacing:.16em;color:var(--mute)}
+.grid3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0}
+label.f{display:block;min-width:0}label.f span{display:block;font-size:12px;font-weight:700;margin-bottom:6px}
+.field{width:100%;font:inherit;font-size:14px;color:var(--ink);background:var(--sunk);border:1.5px solid rgba(0,0,0,.05);border-radius:16px;padding:10px 14px;box-shadow:var(--press)}
+.field:focus{outline:none;box-shadow:var(--press),var(--focus)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;font:inherit;font-size:14px;font-weight:500;color:var(--ink);padding:10px 18px;border-radius:999px;cursor:pointer;white-space:nowrap;
+background:var(--face);border:1px solid rgba(0,0,0,.05);box-shadow:var(--raise-sm);transition:background .15s,box-shadow .15s,transform .1s}
+.btn:hover:not(:disabled){background:#e8e8e7}.btn:active:not(:disabled){box-shadow:var(--press);background:var(--sunk);transform:translateY(1px)}
+.btn:disabled{opacity:.5;box-shadow:none;cursor:not-allowed}.btn:focus-visible,.scene:focus-visible,.seg input:focus-visible+span,.sw:focus-visible{outline:none;box-shadow:var(--focus)}
+.btn.dark{color:#fff;background:linear-gradient(180deg,#a0a0a7,#88888f);text-shadow:0 1px 0 rgba(0,0,0,.15);box-shadow:0 10px 18px -8px rgba(0,0,0,.3),0 3px 0 -1px rgba(0,0,0,.12),inset 0 1px 0 rgba(255,255,255,.45)}
+.btn.dark:hover:not(:disabled){background:linear-gradient(180deg,#7e7e86,#686870)}.btn.dark:active:not(:disabled){background:var(--sunk);color:var(--ink);text-shadow:none;box-shadow:var(--press)}
+.btn.ok{color:#2f7a46;border:1.5px solid rgba(var(--ok),.45);font-weight:600}.btn.ok:hover:not(:disabled){background:rgba(var(--ok),.12)}
+.btn.ng{color:#a8392f;border:1.5px solid rgba(var(--ng),.45);font-weight:600}.btn.ng:hover:not(:disabled){background:rgba(var(--ng),.1)}
+.btn.on.ok{background:rgba(var(--ok),.14);box-shadow:var(--press)}.btn.on.ng{background:rgba(var(--ng),.12);box-shadow:var(--press)}
+.btn.sm{font-size:12px;padding:6px 12px}.btn.ic{width:32px;height:32px;padding:0;font-size:13px}
+.note{font-size:12px;color:var(--mute);margin:10px 0 0}.err{color:#a8392f;font-weight:600}
+.who{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;font-size:13px;font-weight:600;margin-bottom:14px}.who .clock{margin-left:auto;font-variant-numeric:tabular-nums}
+.top{display:flex;align-items:flex-end;justify-content:space-between;gap:10px}.pct{font-size:40px;font-weight:600;line-height:1}.pct small{font-size:18px;color:var(--mute)}
+.bar{display:flex;height:12px;border-radius:999px;overflow:hidden;background:var(--sunk);box-shadow:var(--press);margin:10px 0 8px}.bar i{display:block;height:100%;transition:width .4s}
+.bar .k{background:rgb(var(--ok))}.bar .a{background:rgba(var(--ng),.85)}
+.cnt{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:12px;font-weight:500}.cnt span{display:inline-flex;align-items:center;gap:6px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%}.dot.k{background:rgb(var(--ok))}.dot.a{background:rgb(var(--ng))}.dot.n{background:#b9b9bf}
+.seg{display:flex;gap:4px;padding:4px;border-radius:999px;background:var(--sunk);box-shadow:var(--press);margin:16px 0 10px}.seg label{flex:1;min-width:0;cursor:pointer}
+.seg input{position:absolute;opacity:0;width:1px;height:1px}.seg span{display:block;text-align:center;padding:6px 4px;border-radius:999px;font-size:12px;font-weight:600;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.seg input:checked+span{background:var(--face);color:var(--ink);box-shadow:var(--raise-sm)}
+.opts{display:flex;flex-wrap:wrap;align-items:center;gap:10px 18px;font-size:12px;font-weight:500;margin-bottom:16px}.opts label{display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+.sw{appearance:none;-webkit-appearance:none;flex:none;position:relative;width:44px;height:25px;border-radius:999px;cursor:pointer;background:var(--sunk);box-shadow:var(--press);margin:0}
+.sw::before{content:"";position:absolute;top:50%;left:3px;width:19px;height:19px;border-radius:50%;transform:translateY(-50%);background:linear-gradient(180deg,#fff,#ececeb);box-shadow:0 3px 6px -1px rgba(0,0,0,.28);transition:left .2s}
+.sw:checked{background:linear-gradient(180deg,#96969d,#808087)}.sw:checked::before{left:22px}
+.langs{margin:0 0 0 auto!important;width:180px}
+.scene{height:450px;perspective:1800px;touch-action:pan-y;border-radius:30px;cursor:pointer;-webkit-tap-highlight-color:transparent}
+.flip{position:relative;width:100%;height:100%;transform-style:preserve-3d;transition:transform .75s cubic-bezier(.22,.8,.24,1)}.flip.flipped{transform:rotateY(180deg)}
+.face{position:absolute;inset:0;display:flex;flex-direction:column;gap:10px;padding:18px 20px;border-radius:30px;background:var(--face);border:1px solid rgba(0,0,0,.04);box-shadow:var(--raise-lg);backface-visibility:hidden;-webkit-backface-visibility:hidden;overflow:hidden}
+.face.back{transform:rotateY(180deg)}.face.known{box-shadow:var(--raise-lg),inset 0 0 0 1.5px rgba(var(--ok),.4)}.face.again{box-shadow:var(--raise-lg),inset 0 0 0 1.5px rgba(var(--ng),.38)}
+.ftop{display:flex;align-items:center;gap:8px;min-height:32px}.fbody{flex:1;min-height:0;overflow-y:auto}.fbody.c{display:grid;place-items:center;text-align:center}
+.st{display:inline-flex;align-items:center;gap:6px;padding:3px 11px;border-radius:999px;font-size:11px;font-weight:700;background:var(--face);box-shadow:var(--raise-sm);border:1.5px solid rgba(0,0,0,.06);color:var(--mute)}
+.st.known{color:#2f7a46;border-color:rgba(var(--ok),.5)}.st.again{color:#a8392f;border-color:rgba(var(--ng),.5)}
+.big{font-size:clamp(26px,6vw,40px);font-weight:700;line-height:1.3;margin:0;word-break:keep-all;overflow-wrap:anywhere}
+.dfront{font-size:clamp(16px,3.4vw,20px);font-weight:600;line-height:1.65;margin:0;word-break:keep-all;overflow-wrap:anywhere}
+.tsm{font-size:16px;font-weight:700;color:#5e5e64;margin:0;overflow-wrap:anywhere}.tmid{font-size:clamp(22px,5vw,32px);font-weight:700;margin:0;line-height:1.3;overflow-wrap:anywhere}
+.dlg{font-size:16px;line-height:1.75;font-weight:500;margin:6px 0 0;word-break:keep-all;overflow-wrap:anywhere}
+.ex{margin-top:14px;padding:10px 14px;border-radius:16px;background:var(--sunk);box-shadow:var(--press);font-size:14px;overflow-wrap:anywhere}.ex p{margin:2px 0 0}
+.hint{text-align:center;font-size:11px;color:var(--mute);margin:0}
+.scene{position:relative}.tilt,.mover{position:relative;width:100%;height:100%;transform-style:preserve-3d}.tilt{transition:transform .4s cubic-bezier(.2,.8,.3,1)}.scene.tilting .tilt{transition:transform .12s ease-out}
+.face::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;opacity:var(--sheen,0);transition:opacity .4s;background:radial-gradient(circle at var(--mx,50%) var(--my,20%),rgba(255,255,255,.7),rgba(255,255,255,0) 55%)}
+.face.back::after{background:radial-gradient(circle at calc(100% - var(--mx,50%)) var(--my,20%),rgba(255,255,255,.7),rgba(255,255,255,0) 55%)}
+.fx{position:absolute;inset:0;pointer-events:none;z-index:5}
+.stamp{position:absolute;left:50%;top:46%;padding:7px 18px;border:3px solid currentColor;border-radius:14px;font-weight:900;font-size:clamp(19px,4vw,27px);letter-spacing:.06em;white-space:nowrap;background:rgba(241,241,240,.9);box-shadow:0 12px 26px -12px rgba(0,0,0,.4),inset 0 1px 0 #fff;transform:translate(-50%,-50%) rotate(-10deg)}
+.stamp.k{color:#2f7a46}.stamp.a{color:#a8392f}
+.spark{position:absolute;left:50%;top:46%;width:10px;height:10px;border-radius:50%;background:rgb(var(--ok))}.spark:nth-child(3n){background:rgba(var(--ok),.5)}.spark:nth-child(4n){width:6px;height:6px;background:#fff;box-shadow:0 0 0 1.5px rgba(var(--ok),.5)}
+.ripple{position:absolute;left:50%;top:46%;width:112px;height:112px;border-radius:50%;border:3px solid rgba(var(--ng),.55)}
+.nav{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin-top:20px}.pos{font-weight:600;font-size:14px;min-width:70px;text-align:center}
+.cls{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}.cls .btn{padding:14px}
+kbd{font-family:inherit;font-size:10px;font-weight:600;padding:1px 6px;border-radius:6px;background:var(--face);box-shadow:var(--raise-sm)}
+.keys{text-align:center;font-size:11px;color:var(--mute);margin:12px 0 0;line-height:2}
+.end{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-top:18px}
+.empty{height:450px;display:grid;place-items:center;text-align:center;border-radius:30px;background:var(--face);box-shadow:var(--raise)}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);max-width:calc(100vw - 32px);background:var(--face);box-shadow:var(--raise);border-radius:20px;padding:10px 20px;font-size:14px;font-weight:500;text-align:center;transition:opacity .25s;opacity:0;pointer-events:none}
+.toast.on{opacity:1}
+footer{text-align:center;font-size:12px;color:#5e5e64;padding:24px 16px;background:var(--face);box-shadow:var(--raise)}
+[hidden]{display:none!important}
+@media (max-width:560px){.course{grid-template-columns:repeat(2,minmax(0,1fr))}.grid3{grid-template-columns:1fr}.ttl{display:none}.scene,.empty{height:440px}.langs{margin:0!important;width:100%}}
+@media (prefers-reduced-motion:reduce){.flip{transition:none;transform:none!important}.face{backface-visibility:visible;-webkit-backface-visibility:visible;transition:opacity .3s,visibility .3s}
+.face.back{transform:none;opacity:0;visibility:hidden}.flip.flipped .face.front{opacity:0;visibility:hidden}.flip.flipped .face.back{opacity:1;visibility:visible}.bar i,.sw::before,.tilt{transition:none}.face::after{display:none}}
+`;
+
+// 학생 파일 안에서 실행되는 코드 (이 함수 본문이 그대로 들어감)
+function studyRuntime(D) {
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const pad = n => String(n).padStart(2, '0');
+  const clock = s => `${Math.floor(s / 3600) ? Math.floor(s / 3600) + ':' : ''}${pad(Math.floor(s % 3600 / 60))}:${pad(s % 60)}`;
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); return true; } catch { return false; } }
+  };
+  const LAST = 'flipcard-study-last-' + D.id, key = sid => `flipcard-study-${D.id}-${sid}`;
+  const LABEL = { new: '미학습', known: '암기 완료', again: '재학습' };
+  let S = null, view = [], pos = 0, flipped = false, toastT;
+  const toast = m => { $('toast').textContent = m; $('toast').classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => $('toast').classList.remove('on'), 2400); };
+
+  // 시작: 성명·학과·학번
+  const last = store.get(LAST);
+  if (last) { $('sName').value = last.name || ''; $('sDept').value = last.dept || ''; $('sId').value = last.sid || ''; }
+  $('gateForm').onsubmit = e => {
+    e.preventDefault();
+    const st = { name: $('sName').value.trim(), dept: $('sDept').value.trim(), sid: $('sId').value.trim() };
+    if (!st.name || !st.sid) { $('gateMsg').textContent = '성명과 학번을 입력하세요.'; $('gateMsg').className = 'note err'; return; }
+    const saved = store.get(key(st.sid));
+    S = saved && Array.isArray(saved.st) && saved.st.length === D.cards.length ? saved
+      : { st: D.cards.map(() => ({ status: 'new', again: 0 })), sec: 0, started: Date.now(), filter: 'all', shuffle: false, reverse: false, weak: false, lang: 'ko-KR' };
+    S.student = st;
+    store.set(LAST, st);
+    $('gate').hidden = true;
+    $('study').hidden = false;
+    $('whoName').textContent = `${st.name} · ${st.dept ? st.dept + ' · ' : ''}${st.sid}`;
+    document.querySelector(`input[name=f][value=${S.filter}]`).checked = true;
+    document.querySelector(`input[name=lang][value="${S.lang}"]`).checked = true;
+    $('oShuffle').checked = S.shuffle; $('oReverse').checked = S.reverse; $('oWeak').checked = S.weak;
+    if (saved) toast(`이어서 학습합니다 · 지금까지 ${clock(S.sec)}`);
+    build();
+    render();
+    enterCard(0);
+    setInterval(tick, 1000);
+    $('scene').focus();
+  };
+  const save = () => { if (S) { S.saved = Date.now(); store.set(key(S.student.sid), S); } };
+  // 학습 시간: 화면을 보고 있을 때만 셈
+  function tick() { if (document.hidden) return; S.sec++; $('clock').textContent = '⏱ ' + clock(S.sec); if (S.sec % 10 === 0) save(); }
+  window.addEventListener('pagehide', save);
+  let fitT;
+  const refit = () => { if (S && !$('scene').hidden) fitFaces([$('front'), $('back')]); };
+  window.addEventListener('resize', () => { clearTimeout(fitT); fitT = setTimeout(refit, 120); });
+  if (document.fonts) document.fonts.ready.then(refit);
+
+  function build(keep) {
+    let list = D.cards.map((_, i) => i).filter(i => S.filter === 'all' || S.st[i].status === S.filter);
+    if (S.shuffle) for (let i = list.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [list[i], list[j]] = [list[j], list[i]]; }
+    if (S.weak) list.sort((a, b) => S.st[b].again - S.st[a].again);
+    view = list.length ? [-1, ...list] : []; // -1 = 표지 카드
+    const k = keep != null ? view.indexOf(keep) : -1;
+    pos = k >= 0 ? k : Math.min(pos, Math.max(0, view.length - 1));
+    flipped = false;
+  }
+  const counts = () => { const k = S.st.filter(s => s.status === 'known').length, a = S.st.filter(s => s.status === 'again').length; return { k, a, n: S.st.length - k - a, t: S.st.length }; };
+  function render() {
+    const c = counts(), pct = Math.round(c.k / c.t * 100);
+    countTo(pct);
+    $('bK').style.width = c.k / c.t * 100 + '%'; $('bA').style.width = c.a / c.t * 100 + '%';
+    $('bar').setAttribute('aria-valuenow', pct);
+    $('cK').textContent = c.k; $('cA').textContent = c.a; $('cN').textContent = c.n;
+    const empty = !view.length;
+    $('scene').hidden = empty; $('empty').hidden = !empty;
+    const isCover = !empty && view[pos] === -1;
+    $('bKnown').disabled = $('bAgain').disabled = empty || isCover;
+    $('prev').disabled = empty || pos <= 0; $('next').disabled = empty || pos >= view.length - 1;
+    $('pos').textContent = empty ? '0 / 0' : `${isCover ? '표지' : pos} / ${view.length - 1}`;
+    if (empty) { $('emptyMsg').textContent = `${LABEL[S.filter]} 카드가 없습니다.`; return; }
+    if (isCover) {
+      const o = { title: D.title, subject: D.subject, course: D.course, cards: D.cards };
+      $('front').className = 'face front cover'; $('back').className = 'face back cover';
+      $('front').innerHTML = coverHTML(o, 'front'); $('back').innerHTML = coverHTML(o, 'back');
+      $('flip').classList.toggle('flipped', flipped); $('front').inert = flipped; $('back').inert = !flipped;
+      $('bKnown').classList.remove('on'); $('bAgain').classList.remove('on');
+      fitFaces([$('front'), $('back')]);
+      return;
+    }
+    const i = view[pos], card = D.cards[i], s = S.st[i], cls = s.status === 'new' ? '' : s.status;
+    const badge = `<span class="st ${cls}"><span class="dot ${s.status === 'known' ? 'k' : s.status === 'again' ? 'a' : 'n'}"></span>${LABEL[s.status]}</span>${s.again ? `<span style="font-size:11px;font-weight:600;color:#a8392f">재학습 ${s.again}회</span>` : ''}`;
+    const tts = side => `<button type="button" class="btn ic" data-tts="${side}" style="margin-left:auto" aria-label="${side === 'front' ? '앞면' : '뒷면'} 소리 내어 읽기">🔊</button>`;
+    $('front').className = 'face front ' + cls; $('back').className = 'face back ' + cls;
+    $('front').innerHTML = `<div class="ftop">${badge}${tts('front')}</div><div class="fbody c"><div>${card.emoji ? `<span class="emo" aria-hidden="true">${esc(card.emoji)}</span>` : ''}${S.reverse ? `<div class="dfront">${descHTML(card.desc)}</div>` : `<p class="big">${hiText(card.term)}</p>`}</div></div><p class="hint">카드를 누르거나 Space로 뒤집기</p>`;
+    $('back').innerHTML = `<div class="ftop"><span class="lbl">${S.reverse ? 'TERM · 용어' : 'MEANING · 설명'}</span>${tts('back')}</div><div class="fbody back-body">
+      <div class="bk-main">${S.reverse ? `<p class="tmid">${hiText(card.term)}</p><div class="dlg" style="font-size:14px;color:#5e5e64">${descHTML(card.desc)}</div>` : `<p class="tsm">${hiText(card.term)}</p><div class="dlg">${descHTML(card.desc)}</div>`}</div>
+      ${card.visual || card.example ? `<div class="bk-side">${visualHTML(card.visual)}${card.example ? `<div class="ex"><span class="lbl">EXAMPLE · 예문</span><p>${hiText(card.example)}</p></div>` : ''}</div>` : ''}</div>`;
+    $('flip').classList.toggle('flipped', flipped);
+    $('front').inert = flipped; $('back').inert = !flipped;
+    $('bKnown').classList.toggle('on', s.status === 'known'); $('bAgain').classList.toggle('on', s.status === 'again');
+    fitFaces([$('front'), $('back')]);
+  }
+  // 카드 모션 (움직임 줄이기 설정이면 페이드만)
+  const RM = matchMedia('(prefers-reduced-motion: reduce)');
+  const SPRING = 'cubic-bezier(.2,1.3,.35,1)';
+  const visFace = () => $(flipped ? 'back' : 'front');
+  const done = a => a.finished.catch(() => {});
+  function stopMotion() { ['mover', 'front', 'back'].forEach(id => $(id).getAnimations().forEach(a => a.cancel())); $('mover').style.transform = ''; }
+  function enterCard(d) {
+    if (!view.length) return;
+    stopMotion();
+    visFace().animate([{ opacity: 0 }, { opacity: 1 }], { duration: RM.matches ? 220 : 300, easing: 'ease-out' });
+    if (RM.matches) return;
+    $('mover').animate(d ? [{ transform: `translateX(${d * 48}%) rotate(${d * 8}deg) scale(.9)` }, { transform: 'none' }]
+      : [{ transform: 'translateY(22px) scale(.93)' }, { transform: 'none' }], { duration: 560, easing: SPRING });
+  }
+  function exitCard(kind) {
+    const face = visFace();
+    if (RM.matches) { face.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 220, fill: 'forwards' }); return 240; }
+    const again = kind === 'again', dur = again ? 560 : 440;
+    $('mover').animate(again
+      ? [{ transform: 'none' }, { transform: 'translateX(-12px) rotate(-2deg)', offset: .12 }, { transform: 'translateX(12px) rotate(2deg)', offset: .24 },
+         { transform: 'translateX(-7px) rotate(-1deg)', offset: .36 }, { transform: 'translateX(0)', offset: .46 }, { transform: 'translate(-62%, 10%) rotate(-11deg) scale(.88)' }]
+      : [{ transform: 'none' }, { transform: 'translateY(-14px) scale(1.04)', offset: .28 }, { transform: 'translate(62%, -16%) rotate(13deg) scale(.88)' }],
+      { duration: dur, easing: 'ease-in-out', fill: 'forwards' });
+    face.animate([{ opacity: 1 }, { opacity: 1, offset: .6 }, { opacity: 0 }], { duration: dur, fill: 'forwards' });
+    return dur;
+  }
+  function celebrate(kind) {
+    const fx = $('fx'), known = kind === 'known', base = 'translate(-50%,-50%) rotate(-10deg)';
+    const st = document.createElement('div');
+    st.className = 'stamp ' + (known ? 'k' : 'a');
+    st.textContent = known ? '✓ 암기 완료' : '↻ 재학습';
+    fx.appendChild(st);
+    done(st.animate(RM.matches
+      ? [{ opacity: 0 }, { opacity: 1, offset: .25 }, { opacity: 1, offset: .7 }, { opacity: 0 }]
+      : [{ opacity: 0, transform: 'translate(-50%,-50%) rotate(-18deg) scale(1.9)' }, { opacity: 1, transform: base + ' scale(.94)', offset: .24 },
+         { opacity: 1, transform: base + ' scale(1)', offset: .34 }, { opacity: 1, transform: base + ' scale(1)', offset: .74 }, { opacity: 0, transform: base + ' scale(1.05)' }],
+      { duration: 720, easing: 'cubic-bezier(.2,.9,.3,1)' })).then(() => st.remove());
+    if (RM.matches) return;
+    if (!known) {
+      const r = document.createElement('i');
+      r.className = 'ripple';
+      fx.appendChild(r);
+      done(r.animate([{ transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 }, { transform: 'translate(-50%,-50%) scale(2.6)', opacity: 0 }], { duration: 620, easing: 'cubic-bezier(.1,.7,.3,1)' })).then(() => r.remove());
+      return;
+    }
+    for (let i = 0; i < 18; i++) {
+      const p = document.createElement('i');
+      p.className = 'spark';
+      fx.appendChild(p);
+      const a = Math.random() * Math.PI * 2, dist = 80 + Math.random() * 120, sz = .6 + Math.random() * .9;
+      done(p.animate([{ transform: `translate(-50%,-50%) scale(${sz})`, opacity: 1 },
+        { transform: `translate(calc(-50% + ${Math.cos(a) * dist}px), calc(-50% + ${Math.sin(a) * dist}px)) scale(0)`, opacity: 0 }],
+        { duration: 650 + Math.random() * 350, easing: 'cubic-bezier(.1,.8,.3,1)' })).then(() => p.remove());
+    }
+  }
+  let pctShown = 0, pctRaf = 0;
+  function countTo(n) {
+    const el = $('pct'), from = pctShown, t0 = performance.now();
+    pctShown = n;
+    cancelAnimationFrame(pctRaf);
+    if (RM.matches || from === n) { el.textContent = n; return; }
+    const step = t => { const k = Math.min(1, Math.max(0, (t - t0) / 600)); el.textContent = Math.round(from + (n - from) * (1 - Math.pow(1 - k, 3))); if (k < 1) pctRaf = requestAnimationFrame(step); };
+    pctRaf = requestAnimationFrame(step);
+  }
+  const flip = () => {
+    if (!view.length) return;
+    flipped = !flipped; $('flip').classList.toggle('flipped', flipped); $('front').inert = flipped; $('back').inert = !flipped;
+    if (!RM.matches) $('mover').animate([{ transform: 'none' }, { transform: 'translateY(-12px) scale(1.04)', offset: .4 }, { transform: 'none' }], { duration: 780, easing: 'ease-in-out' });
+  };
+  function go(d) {
+    clearTimeout(advT); advT = null;
+    const n = pos + d;
+    if (n < 0 || n >= view.length) {
+      if (!RM.matches && view.length) $('mover').animate([{ transform: 'none' }, { transform: `translateX(${-d * 14}px)`, offset: .3 }, { transform: `translateX(${d * 6}px)`, offset: .65 }, { transform: 'none' }], { duration: 360 });
+      return toast(d > 0 ? '마지막 카드입니다.' : '첫 번째 카드입니다.');
+    }
+    pos = n; flipped = false;
+    if ('speechSynthesis' in window) speechSynthesis.cancel();
+    render();
+    enterCard(d);
+  }
+  let advT = null;
+  function advance() { advT = null; if (pos < view.length - 1) go(1); else toast(`목록 끝! 진도율 ${pctShown}% · 결과 파일을 저장해 제출하세요.`); }
+  function classify(status) {
+    if (advT) { clearTimeout(advT); advance(); }
+    if (!view.length) return;
+    if (view[pos] === -1) return go(1);
+    const s = S.st[view[pos]];
+    s.status = status;
+    if (status === 'again') s.again++;
+    save();
+    render();
+    celebrate(status);
+    let wait = 420;
+    if (pos < view.length - 1) wait = exitCard(status);
+    else if (!RM.matches) $('mover').animate([{ transform: 'none' }, { transform: 'scale(1.05)', offset: .3 }, { transform: 'none' }], { duration: 480, easing: SPRING });
+    advT = setTimeout(advance, wait);
+  }
+  function speak(side) {
+    if (!('speechSynthesis' in window)) return toast('이 브라우저는 음성 읽기를 지원하지 않습니다.');
+    const card = D.cards[view[pos]], lang = S.lang;
+    let t = ((side === 'front') !== S.reverse ? card.term : card.desc).replace(/^\s*[-•·▪∙]\s*/gm, '').replace(/\*\*/g, '');
+    if (lang === 'zh-CN') { const m = t.match(/[㐀-鿿豈-﫿，。！？、；：]+/g); if (m) t = m.join('，'); }
+    else if (lang === 'en-US') { const m = t.match(/[A-Za-z][A-Za-z0-9'’\- ]*[A-Za-z0-9]/g); if (m) t = m.join(', '); }
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = lang;
+    const v = speechSynthesis.getVoices().find(x => x.lang.replace('_', '-') === lang) || speechSynthesis.getVoices().find(x => x.lang.startsWith(lang.slice(0, 2)));
+    if (v) u.voice = v;
+    u.rate = lang === 'ko-KR' ? 1 : .9;
+    speechSynthesis.speak(u);
+  }
+  if ('speechSynthesis' in window) speechSynthesis.getVoices();
+  $('prev').onclick = () => go(-1); $('next').onclick = () => go(1);
+  $('bKnown').onclick = () => classify('known'); $('bAgain').onclick = () => classify('again');
+  let sx = 0, sy = 0, swiped = false, dragging = false;
+  $('scene').addEventListener('touchstart', e => { sx = e.changedTouches[0].clientX; sy = e.changedTouches[0].clientY; swiped = false; dragging = false; }, { passive: true });
+  $('scene').addEventListener('touchmove', e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy;
+    if (!dragging && Math.abs(dx) > 10 && Math.abs(dx) > Math.abs(dy) * 1.2) { dragging = true; stopMotion(); }
+    if (dragging && !RM.matches) $('mover').style.transform = `translateX(${dx}px) rotate(${dx / 22}deg)`;
+  }, { passive: true });
+  $('scene').addEventListener('touchend', e => {
+    const dx = e.changedTouches[0].clientX - sx, dy = e.changedTouches[0].clientY - sy, from = $('mover').style.transform;
+    if (dragging) swiped = true;
+    dragging = false;
+    if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+      swiped = true;
+      const d = dx < 0 ? 1 : -1;
+      $('mover').style.transform = '';
+      if (pos + d < 0 || pos + d >= view.length || RM.matches) return go(d);
+      done($('mover').animate([{ transform: from || 'none' }, { transform: `translateX(${-d * 120}%) rotate(${-d * 16}deg)` }], { duration: 200, easing: 'ease-in', fill: 'forwards' })).then(() => go(d));
+    } else if (from) {
+      $('mover').style.transform = '';
+      $('mover').animate([{ transform: from }, { transform: 'none' }], { duration: 480, easing: SPRING });
+    }
+  }, { passive: true });
+  $('scene').addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || RM.matches) return;
+    const r = $('scene').getBoundingClientRect(), x = (e.clientX - r.left) / r.width, y = (e.clientY - r.top) / r.height;
+    $('scene').classList.add('tilting');
+    $('tilt').style.transform = `rotateX(${(.5 - y) * 9}deg) rotateY(${(x - .5) * 11}deg)`;
+    $('scene').style.setProperty('--mx', x * 100 + '%');
+    $('scene').style.setProperty('--my', y * 100 + '%');
+    $('scene').style.setProperty('--sheen', '.55');
+  });
+  $('scene').addEventListener('pointerleave', () => { $('scene').classList.remove('tilting'); $('tilt').style.transform = ''; $('scene').style.setProperty('--sheen', '0'); });
+  $('scene').addEventListener('click', e => {
+    if (swiped) { swiped = false; return; }
+    const b = e.target.closest('button');
+    if (b && b.dataset.tts) return speak(b.dataset.tts);
+    if (!b) flip();
+  });
+  document.addEventListener('keydown', e => {
+    if (!S || $('study').hidden || e.ctrlKey || e.metaKey || e.altKey) return;
+    if (e.target.closest('input, textarea, select')) return;
+    if (e.key === ' ') { e.preventDefault(); flip(); }
+    else if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
+    else if (e.key === '1') classify('known');
+    else if (e.key === '2') classify('again');
+  });
+  document.querySelectorAll('input[name=f]').forEach(r => r.onchange = () => { S.filter = r.value; pos = 0; build(); render(); enterCard(0); save(); });
+  document.querySelectorAll('input[name=lang]').forEach(r => r.onchange = () => { S.lang = r.value; save(); });
+  $('oShuffle').onchange = () => { S.shuffle = $('oShuffle').checked; pos = 0; build(); render(); enterCard(S.shuffle ? 1 : -1); save(); };
+  $('oReverse').onchange = () => { S.reverse = $('oReverse').checked; flipped = false; render(); enterCard(0); save(); };
+  $('oWeak').onchange = () => { S.weak = $('oWeak').checked; pos = 0; build(); render(); enterCard(0); save(); };
+  $('emptyAll').onclick = () => { S.filter = 'all'; document.querySelector('input[name=f][value=all]').checked = true; build(); render(); };
+
+  // 결과 제출 파일(JSON)
+  $('saveResult').onclick = () => {
+    save();
+    const c = counts();
+    const out = {
+      app: 'flipcard-result', version: 1, appVersion: D.appVersion,
+      deck: { id: D.id, title: D.title, subject: D.subject }, course: D.course, student: S.student,
+      total: c.t, known: c.k, again: c.a, fresh: c.n, progress: Math.round(c.k / c.t * 100),
+      againTotal: S.st.reduce((a, s) => a + s.again, 0), studySec: S.sec, startedAt: S.started, savedAt: Date.now(),
+      cards: D.cards.map((card, i) => ({ term: card.term, status: S.st[i].status, again: S.st[i].again }))
+    };
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }));
+    a.download = `학습결과_${S.student.sid}_${S.student.name}_${D.title}.json`.replace(/[\\/:*?"<>|\s]+/g, '_');
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 120000);
+    toast('✔ 결과 파일을 저장했습니다. 이 파일을 제출하세요.');
+  };
+  $('changeStudent').onclick = () => { save(); location.reload(); };
+}
+
+function buildStudyHtml(src) {
+  const data = { id: src.id, title: src.title, subject: src.subject || '', appVersion: APP_VERSION,
+    course: { ...course, course: src.subject || course.course }, cards: src.cards };
+  const info = Object.entries(COURSE_FIELDS).map(([k, l]) => [l, k === 'course' ? data.course.course : k === 'prof' && course.prof ? `${course.prof} 교수` : course[k]])
+    .filter(([, v]) => v).map(([l, v]) => `<div><dt>${l}</dt><dd>${esc(v)}</dd></div>`).join('');
+  const json = JSON.stringify(data).replace(/</g, '\\u003c');
+  return `<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>${esc(src.title)} · FLIPCARD 학습</title>
+<link href="https://fonts.googleapis.com/css2?family=Nanum+Pen+Script&family=Noto+Serif+KR:wght@600;700&display=swap" rel="stylesheet"><style>${STUDY_CSS}</style></head>
+<body>
+<header class="hd"><div class="wrap hd-in"><div><p class="series">교수신문 AI 교육 웹앱 시리즈</p><p class="logo">FLIPCARD <span class="ver">${APP_VERSION}</span></p></div><p class="ttl">03 디지털 플래시카드 학습기</p></div></header>
+<main class="wrap">
+  <section class="panel">
+    ${info ? `<dl class="course">${info}</dl>` : ''}
+    <span class="lbl">STUDY DECK</span>
+    <h1>${esc(src.title)}</h1>
+    <p class="sub">플래시카드 ${src.cards.length}장 · 카드를 뒤집어 외우고 ‘암기 완료’ 또는 ‘재학습’으로 나누세요.</p>
+  </section>
+  <section class="panel" id="gate">
+    <span class="lbl">STUDENT · 학생 정보</span>
+    <form id="gateForm">
+      <div class="grid3">
+        <label class="f"><span>성명</span><input id="sName" class="field" autocomplete="name" required></label>
+        <label class="f"><span>학과</span><input id="sDept" class="field"></label>
+        <label class="f"><span>학번</span><input id="sId" class="field" inputmode="numeric" required></label>
+      </div>
+      <button class="btn dark" style="width:100%;padding:14px">학습 시작 →</button>
+      <p id="gateMsg" class="note">학습 기록(진도율·재학습 횟수·학습 시간)은 이 브라우저에 저장되어 같은 학번으로 다시 열면 이어집니다. 다 마치면 ‘결과 파일 저장’으로 JSON 파일을 받아 제출하세요.</p>
+    </form>
+  </section>
+  <section id="study" hidden>
+    <div class="panel">
+      <div class="who"><span id="whoName"></span><span class="clock" id="clock">⏱ 00:00</span></div>
+      <div class="top"><span class="lbl">PROGRESS · 진도율</span><span class="pct"><span id="pct">0</span><small>%</small></span></div>
+      <div class="bar" id="bar" role="progressbar" aria-label="학습 진도율" aria-valuemin="0" aria-valuemax="100"><i class="k" id="bK"></i><i class="a" id="bA"></i></div>
+      <div class="cnt"><span><i class="dot k"></i>암기 완료 <b id="cK">0</b></span><span><i class="dot a"></i>재학습 <b id="cA">0</b></span><span><i class="dot n"></i>미학습 <b id="cN">0</b></span></div>
+      <div class="seg" role="radiogroup" aria-label="복습 필터">
+        <label><input type="radio" name="f" value="all"><span>전체</span></label><label><input type="radio" name="f" value="new"><span>미학습</span></label>
+        <label><input type="radio" name="f" value="again"><span>재학습만</span></label><label><input type="radio" name="f" value="known"><span>암기 완료만</span></label>
+      </div>
+      <div class="opts">
+        <label><input id="oShuffle" type="checkbox" class="sw">순서 섞기</label><label><input id="oReverse" type="checkbox" class="sw">앞뒤 바꾸기</label><label><input id="oWeak" type="checkbox" class="sw">약한 카드 우선</label>
+        <div class="seg langs" role="radiogroup" aria-label="읽기 음성 언어"><label><input type="radio" name="lang" value="zh-CN"><span>中文</span></label><label><input type="radio" name="lang" value="en-US"><span>EN</span></label><label><input type="radio" name="lang" value="ko-KR"><span>한국어</span></label></div>
+      </div>
+      <div id="scene" class="scene tpl-${TEMPLATES[src.tpl] ? src.tpl : 'soft'}" tabindex="0" role="group" aria-roledescription="플래시카드" aria-label="플래시카드: 누르거나 Space로 뒤집기">
+        <div id="tilt" class="tilt"><div id="mover" class="mover"><div id="flip" class="flip"><div id="front" class="face front"></div><div id="back" class="face back"></div></div></div></div>
+        <div id="fx" class="fx" aria-hidden="true"></div>
+      </div>
+      <div id="empty" class="empty" hidden><div><p id="emptyMsg"></p><button type="button" class="btn dark sm" id="emptyAll">전체 카드 보기</button></div></div>
+      <div class="nav"><button type="button" class="btn" id="prev">← 이전</button><span class="pos" id="pos" aria-live="polite"></span><button type="button" class="btn" id="next">다음 →</button></div>
+      <div class="cls"><button type="button" class="btn ok" id="bKnown">✓ 암기 완료 <kbd>1</kbd></button><button type="button" class="btn ng" id="bAgain">↻ 재학습 <kbd>2</kbd></button></div>
+      <p class="keys"><kbd>Space</kbd> 뒤집기 · <kbd>←</kbd><kbd>→</kbd> 이동 · <kbd>1</kbd> 암기 완료 · <kbd>2</kbd> 재학습 · 휴대폰은 좌우로 밀기</p>
+      <div class="end"><button type="button" class="btn dark" id="saveResult">결과 파일 저장 (제출용 JSON) ↓</button><button type="button" class="btn" id="changeStudent">학생 바꾸기</button></div>
+    </div>
+  </section>
+</main>
+<footer>Copyright 2026 ⓒ Edu AI APP, All Rights Reserved. | 박정원 교수(한국외국어대학교 중국학대학)</footer>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>${visualHTML.toString()}
+${coverHTML.toString()}
+${hiText.toString()}
+${descHTML.toString()}
+${fitFaces.toString()}
+(${studyRuntime.toString()})(${json});<\/script>
+</body></html>`;
+}
+async function downloadStudyHtml(src) {
+  if (await download(buildStudyHtml(src), `학습용_${cleanName(src.title)}.html`)) toast('🎓 학습용 HTML을 내려받았습니다. 학생에게 이 파일을 나눠 주세요.');
+}
+
+// ---------- 학습 집계: 학생 결과 파일 여러 개 ----------
+let results = [];
+const avgProgress = () => results.length ? Math.round(results.reduce((a, r) => a + r.progress, 0) / results.length) : 0;
+async function importResults(files) {
+  let added = 0, bad = [];
+  for (const f of files) {
+    try {
+      const r = JSON.parse(await f.text());
+      if (r?.app !== 'flipcard-result' || !r.student?.sid || !Array.isArray(r.cards)) throw 0;
+      const k = `${r.deck?.id}|${r.student.sid}`;
+      const old = results.findIndex(x => `${x.deck?.id}|${x.student.sid}` === k);
+      if (old >= 0) { if ((results[old].savedAt || 0) <= (r.savedAt || 0)) results[old] = r; }
+      else results.push(r);
+      added++;
+    } catch { bad.push(f.name); }
+  }
+  const m = $('reportMsg');
+  m.className = `rounded-2xl px-3 py-2 text-xs ${bad.length ? 'glass-ng' : 'glass-ok'}`;
+  m.textContent = `✔ 결과 파일 ${added}개를 읽었습니다.${bad.length ? ` ✘ 읽지 못한 파일 ${bad.length}개: ${bad.slice(0, 5).join(', ')}${bad.length > 5 ? ' …' : ''}` : ''}`;
+  renderReport();
+}
+function cardStats() {
+  const map = new Map();
+  results.forEach(r => r.cards.forEach(c => {
+    const s = map.get(c.term) || { term: c.term, n: 0, againStu: 0, againSum: 0 };
+    s.n++; if (c.again > 0) s.againStu++; s.againSum += c.again || 0;
+    map.set(c.term, s);
+  }));
+  return [...map.values()].map(s => ({ ...s, rate: s.n ? s.againStu / s.n : 0, avg: s.n ? s.againSum / s.n : 0 })).sort((a, b) => b.rate - a.rate || b.avg - a.avg);
+}
+function renderReport() {
+  const has = results.length > 0;
+  $('reportBody').classList.toggle('hidden', !has);
+  $('reportCsv').disabled = $('reportClear').disabled = !has;
+  renderSummaries();
+  if (!has) return;
+  const people = new Set(results.map(r => r.student.sid)).size;
+  const deckNames = [...new Set(results.map(r => r.deck?.title).filter(Boolean))];
+  const avgSec = results.reduce((a, r) => a + (r.studySec || 0), 0) / results.length;
+  const tile = (label, value, sub, small) => `<div class="glass rounded-[1.6rem] px-4 py-3 min-w-0"><p class="lbl !tracking-[.08em]">${label}</p><p class="font-disp ${small ? 'text-lg leading-[2.25rem]' : 'text-3xl'} font-semibold mt-1 truncate">${value}</p><p class="text-[11px] text-mute truncate">${sub}</p></div>`;
+  $('reportTiles').innerHTML = tile('참여 인원', `${people}<span class="text-base text-mute">명</span>`, `결과 파일 ${results.length}개`)
+    + tile('평균 진도율', `${avgProgress()}<span class="text-base text-mute">%</span>`, '암기 완료 ÷ 전체 카드')
+    + tile('평균 학습 시간', fmtDur(avgSec).replace(/ \d+초$/, ''), '화면을 보고 있던 시간')
+    + tile('덱', deckNames.length > 1 ? `${deckNames.length}개` : esc(deckNames[0] || '—'), deckNames.length > 1 ? '여러 덱이 섞여 있음' : `${results[0].total}장`, deckNames.length <= 1);
+  $('stuBody').innerHTML = [...results].sort((a, b) => b.progress - a.progress).map(r => `<tr>
+    <td class="font-semibold whitespace-nowrap">${esc(r.student.name)}</td><td class="hidden sm:table-cell text-mute">${esc(r.student.dept || '—')}</td><td class="font-disp whitespace-nowrap">${esc(r.student.sid)}</td>
+    <td><div class="flex items-center gap-2 sm:min-w-[6.5rem]"><div class="bar flex-1 !h-2 hidden sm:flex"><i class="k" style="width:${r.progress}%"></i></div><b class="font-disp w-9 text-right">${r.progress}%</b></div></td>
+    <td class="text-center font-disp whitespace-nowrap"><span style="color:#2f7a46">${r.known}</span> / <span style="color:#a8392f">${r.again}</span> / <span class="text-mute">${r.fresh}</span></td>
+    <td class="whitespace-nowrap">${fmtDur(r.studySec)}</td></tr>`).join('');
+  $('cardStatBody').innerHTML = cardStats().map(s => `<tr>
+    <td class="font-semibold leading-snug">${esc(s.term)}</td>
+    <td><div class="flex items-center gap-2"><div class="bar flex-1 !h-2"><i class="a" style="width:${Math.round(s.rate * 100)}%"></i></div><b class="font-disp w-9 text-right">${Math.round(s.rate * 100)}%</b></div></td>
+    <td class="text-right font-disp">${s.avg.toFixed(1)}</td></tr>`).join('');
+}
+$('resultFiles').onchange = e => { if (e.target.files.length) importResults([...e.target.files]); e.target.value = ''; };
+$('resultDrop').addEventListener('drop', e => { const f = [...e.dataTransfer.files].filter(x => /\.json$/i.test(x.name)); if (f.length) importResults(f); });
+$('reportClear').onclick = () => { results = []; $('reportMsg').classList.add('hidden'); renderReport(); };
+$('reportCsv').onclick = () => {
+  const q = v => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const rows = [['[학생별]'], ['덱', '성명', '학과', '학번', '진도율(%)', '암기 완료', '재학습', '미학습', '재학습 누적 횟수', '학습 시간(초)', '학습 시간', '제출 시각'],
+    ...results.map(r => [r.deck?.title, r.student.name, r.student.dept, r.student.sid, r.progress, r.known, r.again, r.fresh, r.againTotal ?? '', r.studySec, fmtDur(r.studySec), r.savedAt ? fmtDate(r.savedAt) : '']),
+    [], ['[카드별]'], ['용어', '학습 학생 수', '재학습 학생 수', '재학습 비율(%)', '평균 재학습 횟수'],
+    ...cardStats().map(s => [s.term, s.n, s.againStu, Math.round(s.rate * 100), s.avg.toFixed(2)]),
+    [], ['참여 인원', new Set(results.map(r => r.student.sid)).size], ['평균 진도율(%)', avgProgress()]];
+  download('﻿' + rows.map(r => r.map(q).join(',')).join('\r\n'), `학습집계_${stamp()}.csv`, 'text/csv');
+};
+
+// ---------- 시작 ----------
+renderRemember();
+syncProviderUI();
+applyPrefsUI();
+showCourseSaved(false);
+buildView();
+refreshAll();
+renderReport();
+enterCard(0);
+</script>
+</body>
+</html>
